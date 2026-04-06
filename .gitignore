@@ -1,0 +1,51 @@
+# =========================
+# IDE & Editor Files
+# =========================
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# =========================
+# OS Files
+# =========================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# =========================
+# Environment & Secrets
+# =========================
+.env
+.env.local
+.env.*.local
+
+# =========================
+# Backend (Spring Boot / Maven)
+# =========================
+backend/target/
+*.class
+*.jar
+*.war
+*.log
+backend/src/main/resources/application-local.yml
+backend/src/main/resources/application-local.properties
+
+# =========================
+# Frontend (React / Vite / Node)
+# =========================
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+
+# =========================
+# Misc
+# =========================
+*.tmp
+*.bak
+logs/
