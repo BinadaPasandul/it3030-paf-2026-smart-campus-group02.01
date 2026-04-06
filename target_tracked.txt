@@ -1,0 +1,4 @@
+﻿backend/target/classes/application.yml
+backend/target/classes/com/smartcampus/hub/SmartCampusApplication.class
+backend/target/classes/com/smartcampus/hub/exception/GlobalExceptionHandler.class
+backend/target/classes/com/smartcampus/hub/security/SecurityConfig.class
