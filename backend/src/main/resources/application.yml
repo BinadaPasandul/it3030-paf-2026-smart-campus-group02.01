@@ -1,14 +1,13 @@
 spring:
   application:
     name: smart-campus-operations-hub
+    
   datasource:
-    url: jdbc:h2:mem:scohdb
-    driver-class-name: org.h2.Driver
-    username: sa
-    password: password
-  h2:
-    console:
-      enabled: true
+    url: jdbc:postgresql://localhost:5432/smart_campus_db
+    username: postgres
+    password: 1234
+    driver-class-name: org.postgresql.Driver
+
   jpa:
     hibernate:
       ddl-auto: update
