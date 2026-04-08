@@ -29,6 +29,7 @@ desktop.ini
 # Backend (Spring Boot / Maven)
 # =========================
 backend/target/
+.vscode/
 *.class
 *.jar
 *.war
