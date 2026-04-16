@@ -1,8 +1,10 @@
 package com.smartcampus.hub.notification.dto;
 
 /**
- * NotificationDTO - Data Transfer Object for notification data
+ * @deprecated Use {@link NotificationResponse} for read operations
+ * and {@link BroadcastRequest} for admin broadcast.
+ * This class is kept as an empty stub to avoid breaking the existing package structure.
  */
+@Deprecated
 public class NotificationDTO {
-    // TODO: Implement notification DTO
 }
