@@ -40,9 +40,22 @@ function Navbar() {
               Profile
             </NavLink>
           )}
+
+          {isAuthenticated && user?.profileCompleted && (
+            <NavLink className={({ isActive }) => (isActive ? "active" : undefined)} to="/resources">
+              Resources
+            </NavLink>
+          )}
+
           {isAdmin && user?.profileCompleted && (
             <NavLink className={({ isActive }) => (isActive ? "active" : undefined)} to="/admin">
               Admin
+            </NavLink>
+          )}
+
+          {isAdmin && user?.profileCompleted && (
+            <NavLink className={({ isActive }) => (isActive ? "active" : undefined)} to="/admin/resources">
+              Manage Resources
             </NavLink>
           )}
 
