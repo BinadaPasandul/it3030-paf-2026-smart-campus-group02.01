@@ -9,6 +9,9 @@ import ProfilePage from "../features/auth/pages/ProfilePage";
 import AdminDashboard from "../features/admin/pages/AdminDashboard";
 import UnauthorizedPage from "../pages/UnauthorizedPage";
 import NotFoundPage from "../pages/NotFoundPage";
+import ResourceListPage from "../features/resources/pages/ResourceListPage";
+import ResourceDetailsPage from "../features/resources/pages/ResourceDetailsPage";
+import AdminResourcesPage from "../features/resources/pages/AdminResourcesPage";
 
 function AppRoutes() {
   return (
@@ -46,6 +49,34 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path="/resources"
+          element={
+            <ProtectedRoute>
+              <ResourceListPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/resources/:id"
+          element={
+            <ProtectedRoute>
+              <ResourceDetailsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/resources"
+          element={
+            <ProtectedRoute adminOnly={true}>
+              <AdminResourcesPage />
+            </ProtectedRoute>
+          }
+        />
+
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>
