@@ -36,17 +36,6 @@ public class GlobalExceptionHandler {
         return error;
     }
 
-    @ExceptionHandler(BookingConflictException.class)
-    @ResponseStatus(HttpStatus.CONFLICT)
-    public Map<String, Object> handleBookingConflict(BookingConflictException ex) {
-        Map<String, Object> error = new HashMap<>();
-        error.put("timestamp", LocalDateTime.now());
-        error.put("status", 409);
-        error.put("error", "Booking Conflict");
-        error.put("message", ex.getMessage());
-        return error;
-    }
-
     @ExceptionHandler(AuthenticationException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public Map<String, Object> handleAuthentication(AuthenticationException ex) {
@@ -96,6 +85,29 @@ public class GlobalExceptionHandler {
         return error;
     }
 
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, Object>> handleException(Exception ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
+        body.put("error", "Internal Server Error");
+        body.put("message", "Something went wrong");
+        return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+    
+    @ExceptionHandler(BookingConflictException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public Map<String, Object> handleBookingConflict(BookingConflictException ex) {
+        Map<String, Object> error = new HashMap<>();
+        error.put("timestamp", LocalDateTime.now());
+        error.put("status", 409);
+        error.put("error", "Booking Conflict");
+        error.put("message", ex.getMessage());
+        return error;
+    }
+
+
+
     @ExceptionHandler(IllegalStateException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public Map<String, Object> handleIllegalState(IllegalStateException ex) {
@@ -106,14 +118,7 @@ public class GlobalExceptionHandler {
         error.put("message", ex.getMessage());
         return error;
     }
-
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> handleException(Exception ex) {
-        Map<String, Object> body = new HashMap<>();
-        body.put("timestamp", LocalDateTime.now());
-        body.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
-        body.put("error", "Internal Server Error");
-        body.put("message", "Something went wrong");
-        return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
-    }
 }
+
+
+
