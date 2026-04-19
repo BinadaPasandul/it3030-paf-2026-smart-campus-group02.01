@@ -30,6 +30,7 @@ public class BookingController {
         return authentication.getName(); // Usually email in OAuth2 or custom UserDetails
     }
 
+    @PreAuthorize("hasAuthority('ROLE_USER')")
     @PostMapping
     public ResponseEntity<BookingResponseDTO> createBooking(@Valid @RequestBody BookingRequestDTO request) {
         return new ResponseEntity<>(bookingService.createBooking(request, getCurrentUserEmail()), HttpStatus.CREATED);
