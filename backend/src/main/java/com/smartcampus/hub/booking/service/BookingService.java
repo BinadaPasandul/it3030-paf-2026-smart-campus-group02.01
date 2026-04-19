@@ -52,7 +52,14 @@ public class BookingService {
             throw new IllegalStateException("Resource is not available for booking.");
         }
 
+        if (request.getStartTime().isBefore(resource.getAvailableFrom()) || 
+            request.getEndTime().isAfter(resource.getAvailableTo())) {
+            throw new IllegalArgumentException("Booking times must be within the resource's operating hours (" 
+                + resource.getAvailableFrom() + " to " + resource.getAvailableTo() + ").");
+        }
+
         checkConflicts(resource.getId(), request.getBookingDate(), request.getStartTime(), request.getEndTime());
+
 
         Booking booking = new Booking();
         booking.setResource(resource);
