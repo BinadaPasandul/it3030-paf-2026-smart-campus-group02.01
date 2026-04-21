@@ -12,6 +12,9 @@ import NotFoundPage from "../pages/NotFoundPage";
 import ResourceListPage from "../features/resources/pages/ResourceListPage";
 import ResourceDetailsPage from "../features/resources/pages/ResourceDetailsPage";
 import AdminResourcesPage from "../features/resources/pages/AdminResourcesPage";
+import TicketListPage from "../features/tickets/pages/TicketListPage";
+import TicketPage from "../features/tickets/pages/TicketPage";
+import TicketDetailsPage from "../features/tickets/pages/TicketDetailsPage";
 
 function AppRoutes() {
   return (
@@ -73,6 +76,33 @@ function AppRoutes() {
           element={
             <ProtectedRoute adminOnly={true}>
               <AdminResourcesPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/tickets"
+          element={
+            <ProtectedRoute>
+              <TicketListPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/tickets/new"
+          element={
+            <ProtectedRoute>
+              <TicketPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/tickets/:id"
+          element={
+            <ProtectedRoute>
+              <TicketDetailsPage />
             </ProtectedRoute>
           }
         />
