@@ -52,13 +52,16 @@ public class BookingService {
             throw new IllegalStateException("Resource is not available for booking.");
         }
 
-        if (request.getStartTime().isBefore(resource.getAvailableFrom()) || 
-            request.getEndTime().isAfter(resource.getAvailableTo())) {
+        LocalTime availableFrom = resource.getAvailableFrom() != null ? resource.getAvailableFrom() : LocalTime.MIN;
+        LocalTime availableTo = resource.getAvailableTo() != null ? resource.getAvailableTo() : LocalTime.MAX;
+
+        if (request.getStartTime().isBefore(availableFrom) || 
+            request.getEndTime().isAfter(availableTo)) {
             throw new IllegalArgumentException("Booking times must be within the resource's operating hours (" 
-                + resource.getAvailableFrom() + " to " + resource.getAvailableTo() + ").");
+                + availableFrom + " to " + availableTo + ").");
         }
 
-        checkConflicts(resource.getId(), request.getBookingDate(), request.getStartTime(), request.getEndTime());
+        checkConflicts(resource.getId(), request.getBookingDate(), request.getStartTime(), request.getEndTime(), null);
 
 
         Booking booking = new Booking();
@@ -124,7 +127,7 @@ public class BookingService {
 
         if (reviewDTO.getStatus() == BookingStatus.APPROVED) {
             checkConflicts(booking.getResource().getId(), booking.getBookingDate(), 
-                          booking.getStartTime(), booking.getEndTime());
+                          booking.getStartTime(), booking.getEndTime(), booking.getId());
         }
 
         booking.setStatus(reviewDTO.getStatus());
@@ -173,8 +176,8 @@ public class BookingService {
         bookingRepository.delete(booking);
     }
 
-    private void checkConflicts(Long resourceId, LocalDate date, LocalTime startTime, LocalTime endTime) {
-        List<Booking> conflicts = bookingRepository.findConflictingBookings(resourceId, date, startTime, endTime);
+    private void checkConflicts(Long resourceId, LocalDate date, LocalTime startTime, LocalTime endTime, Long excludeId) {
+        List<Booking> conflicts = bookingRepository.findConflictingBookings(resourceId, date, startTime, endTime, excludeId);
         if (!conflicts.isEmpty()) {
             throw new BookingConflictException("The resource is already booked during this time range.");
         }

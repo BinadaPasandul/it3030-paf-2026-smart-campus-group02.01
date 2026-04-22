@@ -12,39 +12,39 @@ public class Resource {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String name;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = true, unique = true)
     private String code;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = true)
     private ResourceType type;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private Integer capacity;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String location;
 
     @Column(columnDefinition = "TEXT")
     private String description;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = true)
     private ResourceStatus status = ResourceStatus.ACTIVE;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private LocalTime availableFrom;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private LocalTime availableTo;
 
-    @Column(nullable = false, updatable = false)
+    @Column(nullable = true, updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private LocalDateTime updatedAt;
 
     @PrePersist
