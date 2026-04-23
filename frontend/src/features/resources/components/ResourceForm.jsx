@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { RESOURCE_TYPES, formatLabel } from "../resourceUi";
+import {
+  CAMPUS_BUILDINGS,
+  RESOURCE_TYPES,
+  SUPPORTED_BUILDING_CODE_PREFIXES,
+  formatLabel,
+  getExpectedBuildingForCode,
+  usesAutomaticBuildingLocation,
+} from "../resourceUi";
 
 const defaultFormData = {
   name: "",
@@ -12,6 +19,25 @@ const defaultFormData = {
   availableTo: "",
 };
 
+function buildInitialFormData(initialValues) {
+  const baseFormData = {
+    ...defaultFormData,
+    ...(initialValues ?? {}),
+  };
+
+  if (usesAutomaticBuildingLocation(baseFormData.type)) {
+    return {
+      ...baseFormData,
+      location: getExpectedBuildingForCode(baseFormData.code),
+    };
+  }
+
+  return {
+    ...baseFormData,
+    location: CAMPUS_BUILDINGS.includes(baseFormData.location) ? baseFormData.location : "",
+  };
+}
+
 function ResourceForm({
   initialValues,
   onSubmit,
@@ -20,28 +46,57 @@ function ResourceForm({
   title = "Create a new resource",
   subtitle = "Add a campus space or equipment item with availability and booking details.",
 }) {
-  const [formData, setFormData] = useState(() =>
-    initialValues
-      ? {
-          ...defaultFormData,
-          ...initialValues,
-        }
-      : defaultFormData
-  );
+  const [formData, setFormData] = useState(() => buildInitialFormData(initialValues));
 
   const handleChange = (e) => {
     const { name, value } = e.target;
 
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === "capacity" ? Number(value) : value,
-    }));
+    setFormData((prev) => {
+      const nextFormData = {
+        ...prev,
+        [name]: name === "capacity" ? Number(value) : value,
+      };
+
+      const nextType = name === "type" ? value : nextFormData.type;
+      const nextCode = name === "code" ? value : nextFormData.code;
+
+      if (usesAutomaticBuildingLocation(nextType)) {
+        nextFormData.location = getExpectedBuildingForCode(nextCode);
+      } else if (name === "type" && !CAMPUS_BUILDINGS.includes(nextFormData.location)) {
+        nextFormData.location = "";
+      }
+
+      return nextFormData;
+    });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit(formData);
   };
+
+  const usesBuildingCodeValidation = usesAutomaticBuildingLocation(formData.type);
+  const normalizedCode = formData.code.trim().toUpperCase();
+  const hasCodeInput = formData.code.trim().length > 0;
+  const expectedBuilding = usesBuildingCodeValidation
+    ? getExpectedBuildingForCode(formData.code)
+    : "";
+  const hasInvalidBuildingCode =
+    usesBuildingCodeValidation && hasCodeInput && !expectedBuilding;
+
+  let buildingGuidanceTone = "info";
+  let buildingGuidanceTitle = "Building code guidance";
+  let buildingGuidanceMessage = `For labs and lecture halls, use a resource code starting with ${SUPPORTED_BUILDING_CODE_PREFIXES}. The location will fill automatically.`;
+
+  if (hasInvalidBuildingCode) {
+    buildingGuidanceTone = "error";
+    buildingGuidanceTitle = "Invalid resource code";
+    buildingGuidanceMessage = `Use a code starting with ${SUPPORTED_BUILDING_CODE_PREFIXES}.`;
+  } else if (expectedBuilding) {
+    buildingGuidanceTone = "success";
+    buildingGuidanceTitle = "Location auto-filled";
+    buildingGuidanceMessage = `${normalizedCode} maps to ${expectedBuilding}.`;
+  }
 
   return (
     <form onSubmit={handleSubmit} className="card resource-form-card">
@@ -57,7 +112,7 @@ function ResourceForm({
       </div>
 
       <div className="resource-form-grid">
-        <div className="resource-form-columns">
+        <div className="resource-form-columns resource-form-columns-balanced">
           <div className="resource-form-field">
             <label htmlFor="resource-name">Name</label>
             <input
@@ -77,17 +132,17 @@ function ResourceForm({
             <input
               id="resource-code"
               type="text"
-              className="input"
+              className={`input ${hasInvalidBuildingCode ? "input-invalid" : ""}`.trim()}
               name="code"
               value={formData.code}
               onChange={handleChange}
-              placeholder="LAB-302"
+              placeholder="EN1023 / BM1205"
               required
             />
           </div>
         </div>
 
-        <div className="resource-form-columns resource-form-columns-3">
+        <div className="resource-form-columns resource-form-columns-3 resource-form-columns-resource-meta">
           <div className="resource-form-field">
             <label htmlFor="resource-type">Type</label>
             <select
@@ -123,18 +178,42 @@ function ResourceForm({
 
           <div className="resource-form-field">
             <label htmlFor="resource-location">Location</label>
-            <input
-              id="resource-location"
-              type="text"
-              className="input"
-              name="location"
-              value={formData.location}
-              onChange={handleChange}
-              placeholder="Tech Building - Floor 3"
-              required
-            />
+            {usesBuildingCodeValidation ? (
+              <input
+                id="resource-location"
+                type="text"
+                className="input input-readonly"
+                name="location"
+                value={formData.location}
+                placeholder="Location will auto-fill from code"
+                readOnly
+              />
+            ) : (
+              <select
+                id="resource-location"
+                className="input"
+                name="location"
+                value={formData.location}
+                onChange={handleChange}
+                required
+              >
+                <option value="">Select a building</option>
+                {CAMPUS_BUILDINGS.map((building) => (
+                  <option key={building} value={building}>
+                    {building}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
         </div>
+
+        {usesBuildingCodeValidation ? (
+          <div className={`resource-building-note resource-building-note-${buildingGuidanceTone}`}>
+            <strong>{buildingGuidanceTitle}</strong>
+            <p>{buildingGuidanceMessage}</p>
+          </div>
+        ) : null}
 
         <div className="resource-form-columns">
           <div className="resource-form-field">

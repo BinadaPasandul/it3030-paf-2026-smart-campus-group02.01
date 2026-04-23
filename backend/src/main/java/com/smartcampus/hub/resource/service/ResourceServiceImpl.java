@@ -12,6 +12,7 @@ import com.smartcampus.hub.resource.entity.Resource;
 import com.smartcampus.hub.resource.entity.ResourceStatus;
 import com.smartcampus.hub.resource.entity.ResourceType;
 import com.smartcampus.hub.resource.repository.ResourceRepository;
+import com.smartcampus.hub.resource.validation.CampusBuildingCodeRule;
 import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -36,18 +37,22 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     public ResourceResponse createResource(CreateResourceRequest request) {
-        validateAvailabilityWindow(request.getAvailableFrom(), request.getAvailableTo());
+        String normalizedCode = CampusBuildingCodeRule.normalize(request.getCode());
+        String normalizedLocation = CampusBuildingCodeRule.normalize(request.getLocation());
 
-        if (resourceRepository.existsByCode(request.getCode())) {
+        validateAvailabilityWindow(request.getAvailableFrom(), request.getAvailableTo());
+        validateBuildingCodeRule(normalizedCode, normalizedLocation, request.getType());
+
+        if (resourceRepository.existsByCode(normalizedCode)) {
             throw new DuplicateEntityException("Resource code already exists");
         }
 
         Resource resource = new Resource();
         resource.setName(request.getName());
-        resource.setCode(request.getCode());
+        resource.setCode(normalizedCode);
         resource.setType(request.getType());
         resource.setCapacity(request.getCapacity());
-        resource.setLocation(request.getLocation());
+        resource.setLocation(normalizedLocation);
         resource.setDescription(request.getDescription());
         resource.setAvailableFrom(request.getAvailableFrom());
         resource.setAvailableTo(request.getAvailableTo());
@@ -96,20 +101,24 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     public ResourceResponse updateResource(Long id, UpdateResourceRequest request) {
+        String normalizedCode = CampusBuildingCodeRule.normalize(request.getCode());
+        String normalizedLocation = CampusBuildingCodeRule.normalize(request.getLocation());
+
         validateAvailabilityWindow(request.getAvailableFrom(), request.getAvailableTo());
+        validateBuildingCodeRule(normalizedCode, normalizedLocation, request.getType());
 
         Resource resource = resourceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found with id: " + id));
 
-        if (resourceRepository.existsByCodeAndIdNot(request.getCode(), id)) {
+        if (resourceRepository.existsByCodeAndIdNot(normalizedCode, id)) {
             throw new DuplicateEntityException("Resource code already exists");
         }
 
         resource.setName(request.getName());
-        resource.setCode(request.getCode());
+        resource.setCode(normalizedCode);
         resource.setType(request.getType());
         resource.setCapacity(request.getCapacity());
-        resource.setLocation(request.getLocation());
+        resource.setLocation(normalizedLocation);
         resource.setDescription(request.getDescription());
         resource.setAvailableFrom(request.getAvailableFrom());
         resource.setAvailableTo(request.getAvailableTo());
@@ -149,6 +158,31 @@ public class ResourceServiceImpl implements ResourceService {
 
         if (!from.isBefore(to)) {
             throw new IllegalArgumentException("Available from time must be before available to time");
+        }
+    }
+
+    private void validateBuildingCodeRule(String code, String location, ResourceType type) {
+        if (type != ResourceType.LAB && type != ResourceType.LECTURE_HALL) {
+            return;
+        }
+
+        CampusBuildingCodeRule rule = CampusBuildingCodeRule.findMatchingRule(code)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Invalid resource code "
+                                + code
+                                + ". For LAB and LECTURE_HALL resources, use a code starting with "
+                                + CampusBuildingCodeRule.getSupportedPrefixes()
+                                + "."
+                ));
+
+        if (!rule.matchesLocation(location)) {
+            throw new IllegalArgumentException(
+                    "Location does not match the expected building for code "
+                            + code
+                            + ". Expected: "
+                            + rule.getBuildingName()
+                            + "."
+            );
         }
     }
 
