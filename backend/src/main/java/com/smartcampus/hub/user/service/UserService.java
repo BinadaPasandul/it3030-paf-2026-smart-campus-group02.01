@@ -2,6 +2,7 @@ package com.smartcampus.hub.user.service;
 
 import com.smartcampus.hub.exception.DuplicateEntityException;
 import com.smartcampus.hub.exception.ResourceNotFoundException;
+import com.smartcampus.hub.notification.service.NotificationService;
 import com.smartcampus.hub.user.dto.CompleteProfileRequest;
 import com.smartcampus.hub.user.dto.CreateUserRequest;
 import com.smartcampus.hub.user.dto.UpdateUserRoleRequest;
@@ -9,6 +10,8 @@ import com.smartcampus.hub.user.dto.UserResponse;
 import com.smartcampus.hub.user.entity.Role;
 import com.smartcampus.hub.user.entity.User;
 import com.smartcampus.hub.user.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.lang.NonNull;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -21,10 +24,17 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    // @Lazy prevents a circular dependency: NotificationService → UserRepository ← UserService
+    private NotificationService notificationService;
 
     public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
-        this.userRepository = userRepository;
+        this.userRepository  = userRepository;
         this.passwordEncoder = passwordEncoder;
+    }
+
+    @Autowired
+    public void setNotificationService(@Lazy NotificationService notificationService) {
+        this.notificationService = notificationService;
     }
 
     public UserResponse createUser(CreateUserRequest request) {
@@ -127,8 +137,18 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
+        Role oldRole = user.getRole();
         user.setRole(request.getRole());
         User updatedUser = userRepository.save(user);
+
+        // Notify the user only if the role actually changed
+        if (oldRole != request.getRole()) {
+            notificationService.sendRoleChangedNotification(
+                    updatedUser.getId(),
+                    oldRole.name(),
+                    request.getRole().name()
+            );
+        }
 
         return mapToResponse(updatedUser);
     }
