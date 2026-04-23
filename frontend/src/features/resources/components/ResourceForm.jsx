@@ -1,12 +1,5 @@
 import { useState } from "react";
-
-const RESOURCE_TYPES = [
-  "LECTURE_HALL",
-  "LAB",
-  "MEETING_ROOM",
-  "PROJECTOR",
-  "CAMERA",
-];
+import { RESOURCE_TYPES, formatLabel } from "../resourceUi";
 
 const defaultFormData = {
   name: "",
@@ -19,8 +12,15 @@ const defaultFormData = {
   availableTo: "",
 };
 
-function ResourceForm({ initialValues, onSubmit, onCancel, submitLabel = "Save Resource" }) {
-  const [formData, setFormData] = useState(() => 
+function ResourceForm({
+  initialValues,
+  onSubmit,
+  onCancel,
+  submitLabel = "Save Resource",
+  title = "Create a new resource",
+  subtitle = "Add a campus space or equipment item with availability and booking details.",
+}) {
+  const [formData, setFormData] = useState(() =>
     initialValues
       ? {
           ...defaultFormData,
@@ -44,56 +44,75 @@ function ResourceForm({ initialValues, onSubmit, onCancel, submitLabel = "Save R
   };
 
   return (
-    <form onSubmit={handleSubmit} className="card shadow-sm border-0">
-      <div className="card-body">
-        <div className="row g-3">
-          <div className="col-md-6">
-            <label className="form-label">Name</label>
+    <form onSubmit={handleSubmit} className="card resource-form-card">
+      <div className="resource-form-top">
+        <div>
+          <p className="eyebrow">{initialValues ? "Update Inventory" : "Add Inventory"}</p>
+          <h2>{title}</h2>
+          <p className="page-subtitle">{subtitle}</p>
+        </div>
+        <div className="resource-code-chip">
+          {initialValues ? "Editing live entry" : "New resource draft"}
+        </div>
+      </div>
+
+      <div className="resource-form-grid">
+        <div className="resource-form-columns">
+          <div className="resource-form-field">
+            <label htmlFor="resource-name">Name</label>
             <input
+              id="resource-name"
               type="text"
-              className="form-control"
+              className="input"
               name="name"
               value={formData.name}
               onChange={handleChange}
+              placeholder="Engineering Design Lab"
               required
             />
           </div>
 
-          <div className="col-md-6">
-            <label className="form-label">Code</label>
+          <div className="resource-form-field">
+            <label htmlFor="resource-code">Code</label>
             <input
+              id="resource-code"
               type="text"
-              className="form-control"
+              className="input"
               name="code"
               value={formData.code}
               onChange={handleChange}
+              placeholder="LAB-302"
               required
             />
           </div>
+        </div>
 
-          <div className="col-md-4">
-            <label className="form-label">Type</label>
+        <div className="resource-form-columns resource-form-columns-3">
+          <div className="resource-form-field">
+            <label htmlFor="resource-type">Type</label>
             <select
-              className="form-select"
+              id="resource-type"
+              className="input"
               name="type"
               value={formData.type}
               onChange={handleChange}
               required
             >
-              <option value="">Select type</option>
+              <option value="">Select a resource type</option>
               {RESOURCE_TYPES.map((type) => (
                 <option key={type} value={type}>
-                  {type.replaceAll("_", " ")}
+                  {formatLabel(type)}
                 </option>
               ))}
             </select>
           </div>
 
-          <div className="col-md-4">
-            <label className="form-label">Capacity</label>
+          <div className="resource-form-field">
+            <label htmlFor="resource-capacity">Capacity</label>
             <input
+              id="resource-capacity"
               type="number"
-              className="form-control"
+              className="input"
               name="capacity"
               value={formData.capacity}
               onChange={handleChange}
@@ -102,23 +121,28 @@ function ResourceForm({ initialValues, onSubmit, onCancel, submitLabel = "Save R
             />
           </div>
 
-          <div className="col-md-4">
-            <label className="form-label">Location</label>
+          <div className="resource-form-field">
+            <label htmlFor="resource-location">Location</label>
             <input
+              id="resource-location"
               type="text"
-              className="form-control"
+              className="input"
               name="location"
               value={formData.location}
               onChange={handleChange}
+              placeholder="Tech Building - Floor 3"
               required
             />
           </div>
+        </div>
 
-          <div className="col-md-6">
-            <label className="form-label">Available From</label>
+        <div className="resource-form-columns">
+          <div className="resource-form-field">
+            <label htmlFor="resource-available-from">Available From</label>
             <input
+              id="resource-available-from"
               type="time"
-              className="form-control"
+              className="input"
               name="availableFrom"
               value={formData.availableFrom}
               onChange={handleChange}
@@ -126,41 +150,41 @@ function ResourceForm({ initialValues, onSubmit, onCancel, submitLabel = "Save R
             />
           </div>
 
-          <div className="col-md-6">
-            <label className="form-label">Available To</label>
+          <div className="resource-form-field">
+            <label htmlFor="resource-available-to">Available To</label>
             <input
+              id="resource-available-to"
               type="time"
-              className="form-control"
+              className="input"
               name="availableTo"
               value={formData.availableTo}
               onChange={handleChange}
               required
             />
           </div>
+        </div>
 
-          <div className="col-12">
-            <label className="form-label">Description</label>
-            <textarea
-              className="form-control"
-              rows="3"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-            />
-          </div>
+        <div className="resource-form-field">
+          <label htmlFor="resource-description">Description</label>
+          <textarea
+            id="resource-description"
+            className="input resource-textarea"
+            name="description"
+            value={formData.description}
+            onChange={handleChange}
+            placeholder="Describe equipment, room setup, or any booking restrictions."
+          />
+        </div>
 
-          <div className="col-12">
-            <div className="d-flex gap-2">
-              <button type="submit" className="btn btn-success">
-                {submitLabel}
-              </button>
-              {onCancel && (
-                <button type="button" className="btn btn-outline-secondary" onClick={onCancel}>
-                  Cancel
-                </button>
-              )}
-            </div>
-          </div>
+        <div className="resource-form-actions">
+          <button type="submit" className="btn">
+            {submitLabel}
+          </button>
+          {onCancel ? (
+            <button type="button" className="btn btn-ghost" onClick={onCancel}>
+              Cancel
+            </button>
+          ) : null}
         </div>
       </div>
     </form>
