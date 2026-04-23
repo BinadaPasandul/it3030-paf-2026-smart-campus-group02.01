@@ -15,6 +15,7 @@ function MyBookingsPage() {
       setBookings(data);
       setError(null);
     } catch (err) {
+      console.error(err);
       setError("Failed to load your bookings. Ensure you are logged in.");
     } finally {
       setLoading(false);
@@ -33,6 +34,7 @@ function MyBookingsPage() {
       // Refresh the list immediately after success
       fetchBookings();
     } catch (err) {
+      console.error(err);
       alert("Failed to cancel the booking. It may have already started or been rejected.");
     }
   };
