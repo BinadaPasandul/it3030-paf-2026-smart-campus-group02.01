@@ -10,9 +10,11 @@ import com.smartcampus.hub.exception.BookingConflictException;
 import com.smartcampus.hub.exception.ResourceNotFoundException;
 import com.smartcampus.hub.notification.entity.NotificationType;
 import com.smartcampus.hub.notification.service.NotificationService;
+import com.smartcampus.hub.resource.dto.ResourceBlockResponse;
 import com.smartcampus.hub.resource.entity.Resource;
 import com.smartcampus.hub.resource.entity.ResourceStatus;
 import com.smartcampus.hub.resource.repository.ResourceRepository;
+import com.smartcampus.hub.resource.service.ResourceBlockService;
 import com.smartcampus.hub.user.entity.User;
 import com.smartcampus.hub.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,15 +36,18 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final ResourceRepository resourceRepository;
     private final UserRepository userRepository;
+    private final ResourceBlockService resourceBlockService;
     // @Lazy prevents circular dependency: NotificationService -> UserRepository <- BookingService
     private NotificationService notificationService;
 
     public BookingService(BookingRepository bookingRepository,
                           ResourceRepository resourceRepository,
-                          UserRepository userRepository) {
+                          UserRepository userRepository,
+                          ResourceBlockService resourceBlockService) {
         this.bookingRepository  = bookingRepository;
         this.resourceRepository = resourceRepository;
         this.userRepository     = userRepository;
+        this.resourceBlockService = resourceBlockService;
     }
 
     @Autowired
@@ -76,6 +81,12 @@ public class BookingService {
         }
 
         checkConflicts(resource.getId(), request.getBookingDate(), request.getStartTime(), request.getEndTime(), null);
+        resourceBlockService.ensureNoBlockConflict(
+                resource.getId(),
+                request.getBookingDate(),
+                request.getStartTime(),
+                request.getEndTime()
+        );
 
 
         Booking booking = new Booking();
@@ -154,6 +165,12 @@ public class BookingService {
         if (reviewDTO.getStatus() == BookingStatus.APPROVED) {
             checkConflicts(booking.getResource().getId(), booking.getBookingDate(), 
                           booking.getStartTime(), booking.getEndTime(), booking.getId());
+            resourceBlockService.ensureNoBlockConflict(
+                    booking.getResource().getId(),
+                    booking.getBookingDate(),
+                    booking.getStartTime(),
+                    booking.getEndTime()
+            );
         }
 
         booking.setStatus(reviewDTO.getStatus());
@@ -244,12 +261,18 @@ public class BookingService {
     }
 
     private void checkConflicts(Long resourceId, LocalDate date, LocalTime startTime, LocalTime endTime, Long excludeId) {
-        List<Booking> conflicts = bookingRepository.findConflictingBookings(resourceId, date, startTime, endTime, excludeId);
+        List<Booking> conflicts = bookingRepository.findApprovedConflictingBookings(
+                resourceId,
+                date,
+                startTime,
+                endTime,
+                excludeId
+        );
         if (!conflicts.isEmpty()) {
             Booking conflict = conflicts.get(0);
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
             String message = String.format(
-                "The resource is already booked on %s from %s to %s.",
+                "Cannot complete this request because the resource already has an approved booking on %s from %s to %s.",
                 conflict.getBookingDate(),
                 conflict.getStartTime().format(formatter),
                 conflict.getEndTime().format(formatter)
@@ -259,6 +282,12 @@ public class BookingService {
     }
 
     private BookingResponseDTO mapToDTO(Booking booking) {
+        List<ResourceBlockResponse> blocks = resourceBlockService.getCurrentAndUpcomingBlocks(booking.getResource().getId());
+        boolean currentlyBlocked = blocks.stream().anyMatch(ResourceBlockResponse::isActiveNow);
+        ResourceStatus effectiveStatus = booking.getResource().getStatus() != ResourceStatus.ACTIVE || currentlyBlocked
+                ? ResourceStatus.OUT_OF_SERVICE
+                : ResourceStatus.ACTIVE;
+
         BookingResponseDTO dto = new BookingResponseDTO();
         dto.setId(booking.getId());
         dto.setResourceId(booking.getResource().getId());
@@ -272,6 +301,9 @@ public class BookingService {
         dto.setExpectedAttendees(booking.getExpectedAttendees());
         dto.setStatus(booking.getStatus());
         dto.setAdminReason(booking.getAdminReason());
+        dto.setResourceBaseStatus(booking.getResource().getStatus());
+        dto.setResourceEffectiveStatus(effectiveStatus);
+        dto.setResourcePermanentlyUnavailable(booking.getResource().getStatus() != ResourceStatus.ACTIVE);
         dto.setCreatedAt(booking.getCreatedAt());
         dto.setUpdatedAt(booking.getUpdatedAt());
         return dto;

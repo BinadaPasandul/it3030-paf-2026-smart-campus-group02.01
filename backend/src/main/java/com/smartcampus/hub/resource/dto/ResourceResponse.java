@@ -5,6 +5,7 @@ import com.smartcampus.hub.resource.entity.ResourceType;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
 
 public class ResourceResponse {
 
@@ -16,84 +17,170 @@ public class ResourceResponse {
     private String location;
     private String description;
     private ResourceStatus status;
+    private ResourceStatus baseStatus;
+    private boolean currentlyBlocked;
+    private boolean permanentlyUnavailable;
+    private String currentBlockReason;
+    private int scheduledBlockCount;
+    private ResourceBlockResponse nextScheduledBlock;
+    private List<ResourceBlockResponse> scheduledBlocks;
     private LocalTime availableFrom;
     private LocalTime availableTo;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public ResourceResponse(
-            Long id,
-            String name,
-            String code,
-            ResourceType type,
-            Integer capacity,
-            String location,
-            String description,
-            ResourceStatus status,
-            LocalTime availableFrom,
-            LocalTime availableTo,
-            LocalDateTime createdAt,
-            LocalDateTime updatedAt
-    ) {
-        this.id = id;
-        this.name = name;
-        this.code = code;
-        this.type = type;
-        this.capacity = capacity;
-        this.location = location;
-        this.description = description;
-        this.status = status;
-        this.availableFrom = availableFrom;
-        this.availableTo = availableTo;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
+    public ResourceResponse() {
     }
 
     public Long getId() {
         return id;
     }
 
+    public void setId(Long id) {
+        this.id = id;
+    }
+
     public String getName() {
         return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getCode() {
         return code;
     }
 
+    public void setCode(String code) {
+        this.code = code;
+    }
+
     public ResourceType getType() {
         return type;
+    }
+
+    public void setType(ResourceType type) {
+        this.type = type;
     }
 
     public Integer getCapacity() {
         return capacity;
     }
 
+    public void setCapacity(Integer capacity) {
+        this.capacity = capacity;
+    }
+
     public String getLocation() {
         return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
     }
 
     public String getDescription() {
         return description;
     }
 
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
     public ResourceStatus getStatus() {
         return status;
+    }
+
+    public void setStatus(ResourceStatus status) {
+        this.status = status;
+    }
+
+    public ResourceStatus getBaseStatus() {
+        return baseStatus;
+    }
+
+    public void setBaseStatus(ResourceStatus baseStatus) {
+        this.baseStatus = baseStatus;
+    }
+
+    public boolean isCurrentlyBlocked() {
+        return currentlyBlocked;
+    }
+
+    public void setCurrentlyBlocked(boolean currentlyBlocked) {
+        this.currentlyBlocked = currentlyBlocked;
+    }
+
+    public boolean isPermanentlyUnavailable() {
+        return permanentlyUnavailable;
+    }
+
+    public void setPermanentlyUnavailable(boolean permanentlyUnavailable) {
+        this.permanentlyUnavailable = permanentlyUnavailable;
+    }
+
+    public String getCurrentBlockReason() {
+        return currentBlockReason;
+    }
+
+    public void setCurrentBlockReason(String currentBlockReason) {
+        this.currentBlockReason = currentBlockReason;
+    }
+
+    public int getScheduledBlockCount() {
+        return scheduledBlockCount;
+    }
+
+    public void setScheduledBlockCount(int scheduledBlockCount) {
+        this.scheduledBlockCount = scheduledBlockCount;
+    }
+
+    public ResourceBlockResponse getNextScheduledBlock() {
+        return nextScheduledBlock;
+    }
+
+    public void setNextScheduledBlock(ResourceBlockResponse nextScheduledBlock) {
+        this.nextScheduledBlock = nextScheduledBlock;
+    }
+
+    public List<ResourceBlockResponse> getScheduledBlocks() {
+        return scheduledBlocks;
+    }
+
+    public void setScheduledBlocks(List<ResourceBlockResponse> scheduledBlocks) {
+        this.scheduledBlocks = scheduledBlocks;
     }
 
     public LocalTime getAvailableFrom() {
         return availableFrom;
     }
 
+    public void setAvailableFrom(LocalTime availableFrom) {
+        this.availableFrom = availableFrom;
+    }
+
     public LocalTime getAvailableTo() {
         return availableTo;
+    }
+
+    public void setAvailableTo(LocalTime availableTo) {
+        this.availableTo = availableTo;
     }
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
 
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }

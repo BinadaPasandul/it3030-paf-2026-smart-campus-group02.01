@@ -19,10 +19,11 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     boolean existsByResourceId(Long resourceId);
 
+    // Half-open interval overlap: a booking ending at 10:00 does not block another starting at 10:00.
     @Query("SELECT b FROM Booking b WHERE b.resource.id = :resourceId " +
            "AND b.bookingDate = :date " +
            "AND (:excludeId IS NULL OR b.id <> :excludeId) " +
-           "AND b.status IN ('PENDING', 'APPROVED') " +
+           "AND b.status = 'APPROVED' " +
            "AND ((b.startTime < :endTime AND b.endTime > :startTime))")
-    List<Booking> findConflictingBookings(Long resourceId, LocalDate date, LocalTime startTime, LocalTime endTime, Long excludeId);
+    List<Booking> findApprovedConflictingBookings(Long resourceId, LocalDate date, LocalTime startTime, LocalTime endTime, Long excludeId);
 }

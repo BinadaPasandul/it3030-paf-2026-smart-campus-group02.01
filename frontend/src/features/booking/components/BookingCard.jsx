@@ -1,4 +1,5 @@
 import React from "react";
+import { formatLabel } from "../../resources/resourceUi";
 
 const BookingCard = ({ booking, onCancel, onDelete, isAdmin, onReview }) => {
   const getStatusBadgeClass = (status) => {
@@ -15,6 +16,12 @@ const BookingCard = ({ booking, onCancel, onDelete, isAdmin, onReview }) => {
     }
   };
 
+  const showPermanentWarning =
+    !isAdmin &&
+    booking.resourcePermanentlyUnavailable &&
+    booking.status !== "REJECTED" &&
+    booking.status !== "CANCELLED";
+
   return (
     <article className="booking-card">
       <div className="booking-card-header">
@@ -30,6 +37,13 @@ const BookingCard = ({ booking, onCancel, onDelete, isAdmin, onReview }) => {
         </span>
       </div>
 
+      {showPermanentWarning ? (
+        <div className="booking-warning-banner booking-warning-banner-strong">
+          <strong>This resource is permanently unavailable.</strong>
+          <span>Please contact staff for assistance.</span>
+        </div>
+      ) : null}
+
       <div className="booking-detail-grid">
         <div className="booking-detail-card">
           <p className="booking-detail-label">Purpose</p>
@@ -38,6 +52,10 @@ const BookingCard = ({ booking, onCancel, onDelete, isAdmin, onReview }) => {
         <div className="booking-detail-card">
           <p className="booking-detail-label">Headcount</p>
           <p className="booking-detail-value">{booking.expectedAttendees} persons</p>
+        </div>
+        <div className="booking-detail-card">
+          <p className="booking-detail-label">Permanent status</p>
+          <p className="booking-detail-value">{formatLabel(booking.resourceBaseStatus)}</p>
         </div>
         {isAdmin ? (
           <div className="booking-detail-card">

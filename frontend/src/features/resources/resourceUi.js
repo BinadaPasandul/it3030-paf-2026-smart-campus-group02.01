@@ -49,6 +49,30 @@ export function formatLabel(value = "") {
   return value ? value.replaceAll("_", " ") : "Not available";
 }
 
+export function formatTimeLabel(value = "") {
+  if (!value) {
+    return "--:--";
+  }
+
+  return value.slice(0, 5);
+}
+
+export function formatDateLabel(value = "") {
+  if (!value) {
+    return "Date not set";
+  }
+
+  try {
+    return new Date(`${value}T00:00:00`).toLocaleDateString("en-LK", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return value;
+  }
+}
+
 export function getResourceTypeMeta(type) {
   if (RESOURCE_TYPE_META[type]) {
     return RESOURCE_TYPE_META[type];
@@ -70,12 +94,54 @@ export function getAvailabilityRange(resource) {
     return "Not scheduled";
   }
 
-  const from = resource.availableFrom || "--:--";
-  const to = resource.availableTo || "--:--";
+  const from = formatTimeLabel(resource.availableFrom);
+  const to = formatTimeLabel(resource.availableTo);
   return `${from} - ${to}`;
 }
 
 export function getResourceDescriptionText(description) {
   const trimmed = description?.trim();
   return trimmed || "Managed through the campus operations hub for booking, monitoring, and availability control.";
+}
+
+export function formatBlockWindow(block) {
+  if (!block) {
+    return "No scheduled window";
+  }
+
+  if (block.allDay) {
+    return `${formatDateLabel(block.blockDate)} • All day`;
+  }
+
+  return `${formatDateLabel(block.blockDate)} • ${formatTimeLabel(block.startTime)} - ${formatTimeLabel(block.endTime)}`;
+}
+
+export function timeToMinutes(value = "") {
+  if (!value) {
+    return null;
+  }
+
+  const [hours = "0", minutes = "0"] = value.split(":");
+  return Number(hours) * 60 + Number(minutes);
+}
+
+export function doesBlockOverlap(block, startTime, endTime) {
+  if (!block || !startTime || !endTime) {
+    return false;
+  }
+
+  if (block.allDay) {
+    return true;
+  }
+
+  const bookingStart = timeToMinutes(startTime);
+  const bookingEnd = timeToMinutes(endTime);
+  const blockStart = timeToMinutes(block.startTime);
+  const blockEnd = timeToMinutes(block.endTime);
+
+  if ([bookingStart, bookingEnd, blockStart, blockEnd].some((value) => value === null)) {
+    return false;
+  }
+
+  return bookingStart < blockEnd && bookingEnd > blockStart;
 }

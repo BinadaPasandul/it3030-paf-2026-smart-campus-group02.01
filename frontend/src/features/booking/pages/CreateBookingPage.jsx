@@ -1,7 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { bookingService } from "../api/bookingService";
-import { getAllResources } from "../../../api/resourceApi";
+import { getAllResources, getResourceBlocks } from "../../../api/resourceApi";
+import ResourceBlockList from "../../resources/components/ResourceBlockList";
+import {
+  doesBlockOverlap,
+  formatBlockWindow,
+  formatLabel,
+} from "../../resources/resourceUi";
 import "../booking.css";
 
 function CreateBookingPage() {
@@ -11,7 +17,9 @@ function CreateBookingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [resources, setResources] = useState([]);
+  const [resourceBlocks, setResourceBlocks] = useState([]);
   const [loadingResources, setLoadingResources] = useState(true);
+  const [loadingBlocks, setLoadingBlocks] = useState(false);
   const [formData, setFormData] = useState({
     resourceId: "",
     bookingDate: "",
@@ -31,10 +39,10 @@ function CreateBookingPage() {
         if (preSelectedResourceId) {
           setFormData((prev) => ({ ...prev, resourceId: preSelectedResourceId }));
         } else {
-          const firstActive = data.find((resource) => resource.status === "ACTIVE");
+          const firstBookable = data.find((resource) => !resource.permanentlyUnavailable);
 
-          if (firstActive) {
-            setFormData((prev) => ({ ...prev, resourceId: firstActive.id.toString() }));
+          if (firstBookable) {
+            setFormData((prev) => ({ ...prev, resourceId: firstBookable.id.toString() }));
           } else if (data.length > 0) {
             setFormData((prev) => ({ ...prev, resourceId: data[0].id.toString() }));
           }
@@ -50,10 +58,59 @@ function CreateBookingPage() {
     fetchResources();
   }, [preSelectedResourceId]);
 
+  useEffect(() => {
+    const fetchBlocks = async () => {
+      if (!formData.resourceId) {
+        setResourceBlocks([]);
+        return;
+      }
+
+      try {
+        setLoadingBlocks(true);
+        const data = await getResourceBlocks(formData.resourceId);
+        setResourceBlocks(data);
+        setError(null);
+      } catch (err) {
+        console.error("Failed to fetch resource blocks:", err);
+        setResourceBlocks([]);
+        setError("Could not load scheduled unavailable windows for the selected resource.");
+      } finally {
+        setLoadingBlocks(false);
+      }
+    };
+
+    fetchBlocks();
+  }, [formData.resourceId]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    setError(null);
   };
+
+  const selectedResource = resources.find(
+    (resource) => resource.id.toString() === formData.resourceId,
+  );
+
+  const selectedDateBlocks = useMemo(
+    () => resourceBlocks.filter((block) => block.blockDate === formData.bookingDate),
+    [resourceBlocks, formData.bookingDate],
+  );
+
+  const overlappingBlock = useMemo(
+    () =>
+      selectedDateBlocks.find((block) =>
+        doesBlockOverlap(block, formData.startTime, formData.endTime),
+      ) || null,
+    [selectedDateBlocks, formData.startTime, formData.endTime],
+  );
+
+  const activeResources = resources.filter((resource) => !resource.permanentlyUnavailable).length;
+  const submitDisabled =
+    loading ||
+    loadingResources ||
+    selectedResource?.permanentlyUnavailable ||
+    !!overlappingBlock;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -63,6 +120,16 @@ function CreateBookingPage() {
     try {
       if (formData.startTime >= formData.endTime) {
         throw new Error("End time must be strictly after the start time.");
+      }
+
+      if (selectedResource?.permanentlyUnavailable) {
+        throw new Error("This resource is permanently unavailable and cannot accept new bookings.");
+      }
+
+      if (overlappingBlock) {
+        throw new Error(
+          `This time overlaps a scheduled out-of-service window: ${formatBlockWindow(overlappingBlock)}.`,
+        );
       }
 
       await bookingService.createBooking({
@@ -83,19 +150,14 @@ function CreateBookingPage() {
     }
   };
 
-  const selectedResource = resources.find(
-    (resource) => resource.id.toString() === formData.resourceId,
-  );
-  const activeResources = resources.filter((resource) => resource.status === "ACTIVE").length;
-
   return (
     <div className="booking-create-page">
       <section className="booking-create-hero">
         <div>
           <p className="eyebrow">Smart Campus Booking</p>
-          <h1>Reserve a campus resource with the same clean flow as the rest of the app</h1>
+          <h1>Reserve a campus resource with live availability awareness</h1>
           <p className="page-subtitle booking-hero-copy">
-            Choose an active resource, define the time window, and submit a request with clear usage details.
+            Choose a resource, review scheduled unavailable windows, and submit a reservation request only for bookable time slots.
           </p>
         </div>
 
@@ -109,8 +171,8 @@ function CreateBookingPage() {
             <strong>{selectedResource ? selectedResource.name : "Choose a resource"}</strong>
           </article>
           <article className="booking-highlight-card">
-            <span>Status</span>
-            <strong>{selectedResource ? selectedResource.status : "Waiting for selection"}</strong>
+            <span>Current status</span>
+            <strong>{selectedResource ? formatLabel(selectedResource.status) : "Waiting for selection"}</strong>
           </article>
         </div>
       </section>
@@ -122,12 +184,28 @@ function CreateBookingPage() {
               <p className="eyebrow">Reservation Form</p>
               <h2>Booking details</h2>
               <p className="page-subtitle">
-                This form now follows the same spacing, line rhythm, and card structure as the stronger pages in the app.
+                Scheduled resource blocks are shown here so users can avoid maintenance windows before submitting a request.
               </p>
             </div>
           </div>
 
           {error ? <div className="alert alert-error">{error}</div> : null}
+
+          {selectedResource?.permanentlyUnavailable ? (
+            <div className="booking-warning-banner">
+              <strong>This resource is permanently unavailable.</strong>
+              <span>Pick another resource or contact staff for assistance.</span>
+            </div>
+          ) : null}
+
+          {selectedDateBlocks.length > 0 ? (
+            <div className={`booking-warning-banner ${overlappingBlock ? "booking-warning-banner-strong" : ""}`}>
+              <strong>Unavailable windows on {formData.bookingDate}</strong>
+              <span>
+                {selectedDateBlocks.map((block) => formatBlockWindow(block)).join(" | ")}
+              </span>
+            </div>
+          ) : null}
 
           <form onSubmit={handleSubmit} className="booking-form-grid">
             <div className="booking-form-field">
@@ -150,9 +228,14 @@ function CreateBookingPage() {
                     <option
                       key={resource.id}
                       value={resource.id}
-                      disabled={resource.status !== "ACTIVE"}
+                      disabled={resource.permanentlyUnavailable}
                     >
-                      {resource.name} ({resource.code}) {resource.status !== "ACTIVE" ? "- Unavailable" : ""}
+                      {resource.name} ({resource.code})
+                      {resource.permanentlyUnavailable
+                        ? " - Permanently unavailable"
+                        : resource.currentlyBlocked
+                          ? " - Blocked right now"
+                          : ""}
                     </option>
                   ))
                 )}
@@ -229,7 +312,7 @@ function CreateBookingPage() {
             </div>
 
             <div className="booking-form-actions">
-              <button type="submit" className="btn" disabled={loading || loadingResources}>
+              <button type="submit" className="btn" disabled={submitDisabled}>
                 {loading ? "Processing..." : "Confirm reservation"}
               </button>
             </div>
@@ -250,21 +333,34 @@ function CreateBookingPage() {
                 <p className="page-subtitle">{selectedResource?.location || "Location will appear after selection."}</p>
               </div>
               <div className="booking-note-item">
-                <strong>Capacity</strong>
+                <strong>Current status</strong>
                 <p className="page-subtitle">
-                  {selectedResource ? `${selectedResource.capacity} people` : "Capacity details will appear here."}
+                  {selectedResource ? formatLabel(selectedResource.status) : "Current status will appear here."}
+                </p>
+              </div>
+              <div className="booking-note-item">
+                <strong>Permanent status</strong>
+                <p className="page-subtitle">
+                  {selectedResource ? formatLabel(selectedResource.baseStatus) : "Permanent status will appear here."}
                 </p>
               </div>
             </div>
           </article>
 
-          <article className="booking-insight-card">
-            <span>Before you submit</span>
-            <h2>Keep the request easy to approve</h2>
-            <p className="page-subtitle">
-              Use a clear purpose, choose a realistic attendee count, and make sure the end time is later than the start time.
-            </p>
-          </article>
+          {loadingBlocks ? (
+            <article className="booking-loading-card">
+              <span className="booking-spinner" aria-hidden="true" />
+              <p className="page-subtitle">Loading scheduled unavailable windows...</p>
+            </article>
+          ) : (
+            <ResourceBlockList
+              blocks={resourceBlocks}
+              title="Scheduled unavailable windows"
+              subtitle="These time windows are enforced by booking validation on the backend."
+              emptyMessage="No current or future maintenance windows are scheduled for this resource."
+              compact={true}
+            />
+          )}
         </aside>
       </div>
     </div>
