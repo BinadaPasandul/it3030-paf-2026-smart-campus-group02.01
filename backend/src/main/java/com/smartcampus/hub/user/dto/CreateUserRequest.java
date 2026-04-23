@@ -25,23 +25,17 @@ public class CreateUserRequest {
     @NotBlank(message = "Phone number is required")
     private String phoneNumber;
 
-    @NotBlank(message = "Student ID is required")
     private String studentId;
 
-    @NotNull(message = "Date of birth is required")
     @Past(message = "Date of birth must be in the past")
     private LocalDate dateOfBirth;
 
-    @NotBlank(message = "Faculty is required")
     private String faculty;
 
-    @NotBlank(message = "Department is required")
     private String department;
 
-    @NotBlank(message = "Academic year is required")
     private String academicYear;
 
-    @NotBlank(message = "Semester is required")
     private String semester;
 
     @NotNull(message = "Role is required")

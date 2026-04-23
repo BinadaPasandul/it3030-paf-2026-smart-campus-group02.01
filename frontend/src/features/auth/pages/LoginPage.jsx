@@ -52,7 +52,7 @@ function LoginPage() {
       <div className="card auth-card auth-grid">
         <div>
           <p className="eyebrow">Shared Login</p>
-          <h1>Login as admin or user from the same page.</h1>
+          <h1>Login as admin, technician, or user from the same page.</h1>
           <p className="page-subtitle">
             Use your local email and password, or continue with Google if you
             prefer OAuth. Google users will be sent to a complete-profile page if
