@@ -7,6 +7,7 @@ import {
   FiHome,
   FiLogOut,
   FiUser,
+  FiCalendar
 } from "react-icons/fi";
 
 function Sidebar({ menuOpen, isAuthenticated, isAdmin, user, onLogout }) {
@@ -22,6 +23,12 @@ function Sidebar({ menuOpen, isAuthenticated, isAdmin, user, onLogout }) {
       to: "/resources",
       label: "Resources",
       icon: FiBookOpen,
+      visible: isAuthenticated && user?.profileCompleted,
+    },
+    {
+      to: "/bookings/my",
+      label: "My Bookings",
+      icon: FiCalendar,
       visible: isAuthenticated && user?.profileCompleted,
     },
     {

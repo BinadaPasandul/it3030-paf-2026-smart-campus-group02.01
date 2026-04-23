@@ -14,20 +14,25 @@ import TicketForm from "../components/TicketForm";
 function TicketListPage({ defaultTab = "overview" }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAdmin } = useAuth();
+  const { isAdmin, isTechnician } = useAuth();
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const activeTab = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get("tab");
+
+    if (isTechnician) {
+      return tab === "assigned" ? "assigned" : "overview";
+    }
+
     if (location.pathname === "/tickets/new") {
       return "new";
     }
 
-    const params = new URLSearchParams(location.search);
-    const tab = params.get("tab");
     return tab || defaultTab;
-  }, [defaultTab, location.pathname, location.search]);
+  }, [defaultTab, isTechnician, location.pathname, location.search]);
 
   useEffect(() => {
     if (isAdmin) {
@@ -39,7 +44,7 @@ function TicketListPage({ defaultTab = "overview" }) {
       try {
         setLoading(true);
         setError("");
-        const response = await api.get("/tickets/mine");
+        const response = await api.get(isTechnician ? "/tickets/assigned" : "/tickets/mine");
         setTickets(response.data || []);
       } catch (err) {
         setError(getApiErrorMessage(err, "Failed to load incident tickets."));
@@ -49,7 +54,7 @@ function TicketListPage({ defaultTab = "overview" }) {
     };
 
     loadTickets();
-  }, [isAdmin]);
+  }, [isAdmin, isTechnician]);
 
   const myTickets = useMemo(() => tickets, [tickets]);
 
@@ -69,6 +74,11 @@ function TicketListPage({ defaultTab = "overview" }) {
   }, [myTickets]);
 
   const handleTabChange = (tab) => {
+    if (isTechnician) {
+      navigate(tab === "assigned" ? "/tickets?tab=assigned" : "/tickets");
+      return;
+    }
+
     if (tab === "new") {
       navigate("/tickets/new");
       return;
@@ -102,10 +112,12 @@ function TicketListPage({ defaultTab = "overview" }) {
       <div className="dashboard-stack ticket-hub-shell">
         <section className="ticket-hero">
           <div>
-            <p className="eyebrow">Smart Campus Support</p>
-            <h1>Student incident ticket system</h1>
+            <p className="eyebrow">{isTechnician ? "Technician Workspace" : "Smart Campus Support"}</p>
+            <h1>{isTechnician ? "Assigned ticket queue" : "Student incident ticket system"}</h1>
             <p className="page-subtitle ticket-hero-copy">
-              Stay on top of reports, create new issues quickly, and follow every update from one responsive workspace.
+              {isTechnician
+                ? "Track assigned support work, update progress, and record clear resolution notes from one workspace."
+                : "Stay on top of reports, create new issues quickly, and follow every update from one responsive workspace."}
             </p>
           </div>
         </section>
@@ -118,19 +130,21 @@ function TicketListPage({ defaultTab = "overview" }) {
           >
             Overview
           </button>
+          {!isTechnician ? (
+            <button
+              type="button"
+              className={`ticket-hub-tab ${activeTab === "new" ? "active" : ""}`}
+              onClick={() => handleTabChange("new")}
+            >
+              New Ticket
+            </button>
+          ) : null}
           <button
             type="button"
-            className={`ticket-hub-tab ${activeTab === "new" ? "active" : ""}`}
-            onClick={() => handleTabChange("new")}
+            className={`ticket-hub-tab ${activeTab === (isTechnician ? "assigned" : "my") ? "active" : ""}`}
+            onClick={() => handleTabChange(isTechnician ? "assigned" : "my")}
           >
-            New Ticket
-          </button>
-          <button
-            type="button"
-            className={`ticket-hub-tab ${activeTab === "my" ? "active" : ""}`}
-            onClick={() => handleTabChange("my")}
-          >
-            My Tickets
+            {isTechnician ? "Assigned Tickets" : "My Tickets"}
           </button>
         </section>
 
@@ -154,18 +168,23 @@ function TicketListPage({ defaultTab = "overview" }) {
               <article className="card ticket-overview-panel">
                 <div className="ticket-list-header">
                   <div>
-                    <p className="eyebrow">Student Overview</p>
-                    <h2>Your support activity</h2>
+                    <p className="eyebrow">{isTechnician ? "Technician Overview" : "Student Overview"}</p>
+                    <h2>{isTechnician ? "Assigned support activity" : "Your support activity"}</h2>
                     <p className="page-subtitle">
-                      Monitor how quickly requests are moving through the support workflow.
+                      {isTechnician
+                        ? "Monitor the tickets assigned to you and keep resolution progress current."
+                        : "Monitor how quickly requests are moving through the support workflow."}
                     </p>
                   </div>
                 </div>
                 <div className="ticket-insight-grid">
                   <div className="ticket-insight-card">
-                    <span className="ticket-insight-label">Latest request</span>
+                    <span className="ticket-insight-label">{isTechnician ? "Latest assignment" : "Latest request"}</span>
                     <strong>{recentTickets[0]?.title || "No tickets yet"}</strong>
-                    <p>{recentTickets[0]?.status?.replaceAll("_", " ") || "Create your first incident report"}</p>
+                    <p>
+                      {recentTickets[0]?.status?.replaceAll("_", " ") ||
+                        (isTechnician ? "No assigned tickets yet" : "Create your first incident report")}
+                    </p>
                   </div>
                   <div className="ticket-insight-card">
                     <span className="ticket-insight-label">Response health</span>
@@ -182,12 +201,14 @@ function TicketListPage({ defaultTab = "overview" }) {
 
               <article className="card ticket-overview-panel ticket-cta-panel">
                 <p className="eyebrow">Quick Action</p>
-                <h2>Need help right now?</h2>
+                <h2>{isTechnician ? "Ready for the queue?" : "Need help right now?"}</h2>
                 <p className="page-subtitle">
-                  Open a new support ticket with details, location, contact information, and image evidence in a few steps.
+                  {isTechnician
+                    ? "Open your assigned list to update progress, resolve completed work, and add resolution notes."
+                    : "Open a new support ticket with details, location, contact information, and image evidence in a few steps."}
                 </p>
-                <button className="btn btn-primary" onClick={() => handleTabChange("new")}>
-                  Create Ticket
+                <button className="btn btn-primary" onClick={() => handleTabChange(isTechnician ? "assigned" : "new")}>
+                  {isTechnician ? "Open Assigned Tickets" : "Create Ticket"}
                 </button>
               </article>
             </section>
@@ -196,11 +217,19 @@ function TicketListPage({ defaultTab = "overview" }) {
               tickets={recentTickets}
               loading={loading}
               error={error}
-              title="Recent Tickets"
-              subtitle="Your latest incident submissions with status and priority at a glance."
-              emptyTitle="No student tickets yet"
-              emptySubtitle="Your submitted tickets will appear here as soon as you create one."
-              actionLabel="Create Your First Ticket"
+              title={isTechnician ? "Recently Assigned Tickets" : "Recent Tickets"}
+              subtitle={
+                isTechnician
+                  ? "Your latest assigned incidents with status and priority at a glance."
+                  : "Your latest incident submissions with status and priority at a glance."
+              }
+              emptyTitle={isTechnician ? "No assigned tickets yet" : "No student tickets yet"}
+              emptySubtitle={
+                isTechnician
+                  ? "Tickets assigned by an administrator will appear here."
+                  : "Your submitted tickets will appear here as soon as you create one."
+              }
+              actionLabel={isTechnician ? null : "Create Your First Ticket"}
               showCreatedBy={false}
             />
           </div>
@@ -210,16 +239,24 @@ function TicketListPage({ defaultTab = "overview" }) {
           <TicketForm onCreated={handleTicketCreated} />
         ) : null}
 
-        {activeTab === "my" ? (
+        {activeTab === "my" || activeTab === "assigned" ? (
           <TicketList
             tickets={myTickets}
             loading={loading}
             error={error}
-            title="My Tickets"
-            subtitle="A focused view of tickets reported from your account."
-            emptyTitle="You have not submitted any tickets"
-            emptySubtitle="Once you report an incident, you can track it here with status, priority, and submission time."
-            actionLabel="Submit a Ticket"
+            title={isTechnician ? "Assigned Tickets" : "My Tickets"}
+            subtitle={
+              isTechnician
+                ? "A focused view of tickets assigned to your technician account."
+                : "A focused view of tickets reported from your account."
+            }
+            emptyTitle={isTechnician ? "No tickets assigned to you" : "You have not submitted any tickets"}
+            emptySubtitle={
+              isTechnician
+                ? "An administrator can assign tickets to you from the ticket management hub."
+                : "Once you report an incident, you can track it here with status, priority, and submission time."
+            }
+            actionLabel={isTechnician ? null : "Submit a Ticket"}
             showCreatedBy={false}
           />
         ) : null}

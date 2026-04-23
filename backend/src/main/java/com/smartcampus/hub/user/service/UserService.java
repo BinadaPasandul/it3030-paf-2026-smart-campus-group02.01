@@ -38,19 +38,24 @@ public class UserService {
     }
 
     public UserResponse createUser(CreateUserRequest request) {
+        Role role = request.getRole();
+        boolean staffAccount = role == Role.ADMIN || role == Role.TECHNICIAN;
+
         User savedUser = createLocalUser(
                 request.getFullName(),
                 request.getEmail(),
                 request.getPassword(),
                 request.getPhoneNumber(),
-                request.getStudentId(),
+                staffAccount
+                        ? defaultIfBlank(request.getStudentId(), role.name() + "-" + sanitizeAccountCode(request.getEmail()))
+                        : request.getStudentId(),
                 request.getDateOfBirth(),
-                request.getFaculty(),
-                request.getDepartment(),
-                request.getAcademicYear(),
-                request.getSemester(),
-                request.getRole(),
-                true
+                staffAccount ? defaultIfBlank(request.getFaculty(), "Campus Operations") : request.getFaculty(),
+                staffAccount ? defaultIfBlank(request.getDepartment(), defaultStaffDepartment(role)) : request.getDepartment(),
+                staffAccount ? defaultIfBlank(request.getAcademicYear(), "Staff") : request.getAcademicYear(),
+                staffAccount ? defaultIfBlank(request.getSemester(), "Staff") : request.getSemester(),
+                role,
+                staffAccount || hasCompleteProfileDetails(request)
         );
         return mapToResponse(savedUser);
     }
@@ -113,6 +118,13 @@ public class UserService {
 
     public List<UserResponse> getAllUsers() {
         return userRepository.findAll()
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    public List<UserResponse> getActiveTechnicians() {
+        return userRepository.findByRoleAndActiveTrueOrderByFullNameAsc(Role.TECHNICIAN)
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
@@ -229,7 +241,38 @@ public class UserService {
                 && hasText(user.getSemester());
     }
 
+    private boolean hasCompleteProfileDetails(CreateUserRequest request) {
+        return hasText(request.getFullName())
+                && hasText(request.getPhoneNumber())
+                && hasText(request.getStudentId())
+                && request.getDateOfBirth() != null
+                && hasText(request.getFaculty())
+                && hasText(request.getDepartment())
+                && hasText(request.getAcademicYear())
+                && hasText(request.getSemester());
+    }
+
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private String defaultIfBlank(String value, String fallback) {
+        return hasText(value) ? value : fallback;
+    }
+
+    private String defaultStaffDepartment(Role role) {
+        return role == Role.TECHNICIAN ? "Technical Services" : "Administration";
+    }
+
+    private String sanitizeAccountCode(String email) {
+        if (!hasText(email)) {
+            return String.valueOf(System.currentTimeMillis());
+        }
+
+        String sanitized = email.substring(0, email.indexOf("@") > 0 ? email.indexOf("@") : email.length())
+                .replaceAll("[^A-Za-z0-9]", "")
+                .toUpperCase();
+
+        return sanitized.isBlank() ? String.valueOf(System.currentTimeMillis()) : sanitized;
     }
 }

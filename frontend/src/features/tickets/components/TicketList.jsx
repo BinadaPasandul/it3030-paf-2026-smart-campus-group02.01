@@ -94,13 +94,15 @@ function TicketList({
             <p className="page-subtitle">{emptySubtitle}</p>
           </div>
         </div>
-        <button 
-          className="btn btn-primary" 
-          style={{ marginTop: "1rem" }}
-          onClick={() => navigate("/tickets/new")}
-        >
-          {actionLabel}
-        </button>
+        {actionLabel ? (
+          <button 
+            className="btn btn-primary" 
+            style={{ marginTop: "1rem" }}
+            onClick={() => navigate("/tickets/new")}
+          >
+            {actionLabel}
+          </button>
+        ) : null}
       </article>
     );
   }

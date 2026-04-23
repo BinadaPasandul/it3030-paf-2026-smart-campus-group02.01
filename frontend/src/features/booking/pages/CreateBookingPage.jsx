@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { bookingService } from "../api/bookingService";
 import { getAllResources } from "../../../api/resourceApi";
+import "../booking.css";
 
 function CreateBookingPage() {
   const navigate = useNavigate();
@@ -9,18 +10,15 @@ function CreateBookingPage() {
   const preSelectedResourceId = searchParams.get("resourceId");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  
   const [resources, setResources] = useState([]);
   const [loadingResources, setLoadingResources] = useState(true);
-  
-  // Local state for the form fields
   const [formData, setFormData] = useState({
     resourceId: "",
     bookingDate: "",
     startTime: "",
     endTime: "",
     purpose: "",
-    expectedAttendees: 1
+    expectedAttendees: 1,
   });
 
   useEffect(() => {
@@ -29,16 +27,16 @@ function CreateBookingPage() {
         setLoadingResources(true);
         const data = await getAllResources();
         setResources(data);
-        
-        // Handle pre-selection from URL or default to first active
+
         if (preSelectedResourceId) {
-          setFormData(prev => ({ ...prev, resourceId: preSelectedResourceId }));
+          setFormData((prev) => ({ ...prev, resourceId: preSelectedResourceId }));
         } else {
-          const firstActive = data.find(r => r.status === "ACTIVE");
+          const firstActive = data.find((resource) => resource.status === "ACTIVE");
+
           if (firstActive) {
-            setFormData(prev => ({ ...prev, resourceId: firstActive.id.toString() }));
+            setFormData((prev) => ({ ...prev, resourceId: firstActive.id.toString() }));
           } else if (data.length > 0) {
-            setFormData(prev => ({ ...prev, resourceId: data[0].id.toString() }));
+            setFormData((prev) => ({ ...prev, resourceId: data[0].id.toString() }));
           }
         }
       } catch (err) {
@@ -50,7 +48,7 @@ function CreateBookingPage() {
     };
 
     fetchResources();
-  }, []);
+  }, [preSelectedResourceId]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -63,7 +61,6 @@ function CreateBookingPage() {
     setLoading(true);
 
     try {
-      // Validate times loosely before sending
       if (formData.startTime >= formData.endTime) {
         throw new Error("End time must be strictly after the start time.");
       }
@@ -71,10 +68,9 @@ function CreateBookingPage() {
       await bookingService.createBooking({
         ...formData,
         resourceId: parseInt(formData.resourceId, 10),
-        expectedAttendees: parseInt(formData.expectedAttendees, 10)
+        expectedAttendees: parseInt(formData.expectedAttendees, 10),
       });
-      
-      // Navigate strictly to "my bookings" upon success
+
       navigate("/bookings/my");
     } catch (err) {
       if (err.response && err.response.data && err.response.data.message) {
@@ -87,123 +83,189 @@ function CreateBookingPage() {
     }
   };
 
+  const selectedResource = resources.find(
+    (resource) => resource.id.toString() === formData.resourceId,
+  );
+  const activeResources = resources.filter((resource) => resource.status === "ACTIVE").length;
+
   return (
-    <div className="auth-wrapper" style={{ minHeight: "100%", paddingBottom: "24px" }}>
-      <div className="card" style={{ maxWidth: "600px", width: "100%", margin: "0 auto" }}>
-        <h1 style={{ marginBottom: "8px", fontSize: "2rem" }}>Book a Resource</h1>
-        <p className="page-subtitle" style={{ marginBottom: "24px" }}>
-          Reserve a room, lab, or equipment for your activities.
-        </p>
+    <div className="booking-create-page">
+      <section className="booking-create-hero">
+        <div>
+          <p className="eyebrow">Smart Campus Booking</p>
+          <h1>Reserve a campus resource with the same clean flow as the rest of the app</h1>
+          <p className="page-subtitle booking-hero-copy">
+            Choose an active resource, define the time window, and submit a request with clear usage details.
+          </p>
+        </div>
 
-        {error && (
-          <div className="alert alert-error" style={{ marginBottom: "20px" }}>
-            {error}
-          </div>
-        )}
+        <div className="booking-highlight-list">
+          <article className="booking-highlight-card">
+            <span>Resources ready</span>
+            <strong>{loadingResources ? "..." : activeResources}</strong>
+          </article>
+          <article className="booking-highlight-card">
+            <span>Selected asset</span>
+            <strong>{selectedResource ? selectedResource.name : "Choose a resource"}</strong>
+          </article>
+          <article className="booking-highlight-card">
+            <span>Status</span>
+            <strong>{selectedResource ? selectedResource.status : "Waiting for selection"}</strong>
+          </article>
+        </div>
+      </section>
 
-        <form onSubmit={handleSubmit} className="form-grid">
-          <div className="input-group">
-            <label>Resource</label>
-            <select
-              className="input"
-              name="resourceId"
-              value={formData.resourceId}
-              onChange={handleChange}
-              required
-              disabled={loadingResources}
-            >
-              {loadingResources ? (
-                <option value="">Loading resources...</option>
-              ) : (
-                <>
-                  {resources.length === 0 ? (
-                    <option value="">No resources available</option>
-                  ) : (
-                    resources.map((resource) => (
-                      <option 
-                        key={resource.id} 
-                        value={resource.id}
-                        disabled={resource.status !== "ACTIVE"}
-                      >
-                        {resource.name} ({resource.code}) {resource.status !== "ACTIVE" ? "- Out of Service" : ""}
-                      </option>
-                    ))
-                  )}
-                </>
-              )}
-            </select>
-          </div>
-
-          <div className="input-group">
-            <label>Date</label>
-            <input
-              type="date"
-              className="input"
-              name="bookingDate"
-              value={formData.bookingDate}
-              onChange={handleChange}
-              min={new Date().toISOString().split("T")[0]}
-              required
-            />
-          </div>
-
-          <div className="form-columns">
-            <div className="input-group">
-              <label>Start Time</label>
-              <input
-                type="time"
-                className="input"
-                name="startTime"
-                value={formData.startTime}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="input-group">
-              <label>End Time</label>
-              <input
-                type="time"
-                className="input"
-                name="endTime"
-                value={formData.endTime}
-                onChange={handleChange}
-                required
-              />
+      <div className="booking-create-layout">
+        <section className="booking-form-card">
+          <div className="booking-form-header">
+            <div>
+              <p className="eyebrow">Reservation Form</p>
+              <h2>Booking details</h2>
+              <p className="page-subtitle">
+                This form now follows the same spacing, line rhythm, and card structure as the stronger pages in the app.
+              </p>
             </div>
           </div>
 
-          <div className="input-group">
-            <label>Purpose</label>
-            <input
-              type="text"
-              className="input"
-              name="purpose"
-              value={formData.purpose}
-              onChange={handleChange}
-              placeholder="e.g. Group Project Meeting"
-              required
-            />
-          </div>
+          {error ? <div className="alert alert-error">{error}</div> : null}
 
-          <div className="input-group">
-            <label>Expected Attendees</label>
-            <input
-              type="number"
-              className="input"
-              name="expectedAttendees"
-              value={formData.expectedAttendees}
-              onChange={handleChange}
-              min="1"
-              required
-            />
-          </div>
+          <form onSubmit={handleSubmit} className="booking-form-grid">
+            <div className="booking-form-field">
+              <label htmlFor="resourceId">Resource to book</label>
+              <select
+                id="resourceId"
+                className="input"
+                name="resourceId"
+                value={formData.resourceId}
+                onChange={handleChange}
+                required
+                disabled={loadingResources}
+              >
+                {loadingResources ? (
+                  <option value="">Loading facilities...</option>
+                ) : resources.length === 0 ? (
+                  <option value="">No resources found</option>
+                ) : (
+                  resources.map((resource) => (
+                    <option
+                      key={resource.id}
+                      value={resource.id}
+                      disabled={resource.status !== "ACTIVE"}
+                    >
+                      {resource.name} ({resource.code}) {resource.status !== "ACTIVE" ? "- Unavailable" : ""}
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
 
-          <div className="actions-row" style={{ marginTop: "12px" }}>
-            <button type="submit" className="btn" disabled={loading} style={{ width: "100%" }}>
-              {loading ? "Submitting..." : "Confirm Booking"}
-            </button>
-          </div>
-        </form>
+            <div className="booking-form-field">
+              <label htmlFor="bookingDate">Booking date</label>
+              <input
+                id="bookingDate"
+                type="date"
+                className="input"
+                name="bookingDate"
+                value={formData.bookingDate}
+                onChange={handleChange}
+                min={new Date().toISOString().split("T")[0]}
+                required
+              />
+            </div>
+
+            <div className="form-columns">
+              <div className="booking-form-field">
+                <label htmlFor="startTime">From</label>
+                <input
+                  id="startTime"
+                  type="time"
+                  className="input"
+                  name="startTime"
+                  value={formData.startTime}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div className="booking-form-field">
+                <label htmlFor="endTime">Until</label>
+                <input
+                  id="endTime"
+                  type="time"
+                  className="input"
+                  name="endTime"
+                  value={formData.endTime}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="booking-form-field">
+              <label htmlFor="purpose">Purpose of reservation</label>
+              <input
+                id="purpose"
+                type="text"
+                className="input"
+                name="purpose"
+                value={formData.purpose}
+                onChange={handleChange}
+                placeholder="e.g. Research Seminar"
+                required
+              />
+            </div>
+
+            <div className="booking-form-field">
+              <label htmlFor="expectedAttendees">Expected headcount</label>
+              <input
+                id="expectedAttendees"
+                type="number"
+                className="input"
+                name="expectedAttendees"
+                value={formData.expectedAttendees}
+                onChange={handleChange}
+                min="1"
+                required
+              />
+            </div>
+
+            <div className="booking-form-actions">
+              <button type="submit" className="btn" disabled={loading || loadingResources}>
+                {loading ? "Processing..." : "Confirm reservation"}
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <aside className="booking-insight-list">
+          <article className="booking-form-note">
+            <p className="eyebrow">Selection Snapshot</p>
+            <h2>{selectedResource ? selectedResource.name : "Pick a resource to preview it here"}</h2>
+            <div className="booking-note-list">
+              <div className="booking-note-item">
+                <strong>Code</strong>
+                <p className="page-subtitle">{selectedResource?.code || "No resource selected yet."}</p>
+              </div>
+              <div className="booking-note-item">
+                <strong>Location</strong>
+                <p className="page-subtitle">{selectedResource?.location || "Location will appear after selection."}</p>
+              </div>
+              <div className="booking-note-item">
+                <strong>Capacity</strong>
+                <p className="page-subtitle">
+                  {selectedResource ? `${selectedResource.capacity} people` : "Capacity details will appear here."}
+                </p>
+              </div>
+            </div>
+          </article>
+
+          <article className="booking-insight-card">
+            <span>Before you submit</span>
+            <h2>Keep the request easy to approve</h2>
+            <p className="page-subtitle">
+              Use a clear purpose, choose a realistic attendee count, and make sure the end time is later than the start time.
+            </p>
+          </article>
+        </aside>
       </div>
     </div>
   );

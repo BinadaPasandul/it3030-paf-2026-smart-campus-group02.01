@@ -17,7 +17,15 @@ export const AuthProvider = ({ children }) => {
       return "/complete-profile";
     }
 
-    return currentUser.role === "ADMIN" ? "/admin" : "/profile";
+    if (currentUser.role === "ADMIN") {
+      return "/admin";
+    }
+
+    if (currentUser.role === "TECHNICIAN") {
+      return "/tickets";
+    }
+
+    return "/profile";
   };
 
   const refreshUser = async () => {
@@ -105,6 +113,7 @@ export const AuthProvider = ({ children }) => {
         getHomePathForUser,
         isAuthenticated: !!user,
         isAdmin: user?.role === "ADMIN",
+        isTechnician: user?.role === "TECHNICIAN",
       }}
     >
       {children}

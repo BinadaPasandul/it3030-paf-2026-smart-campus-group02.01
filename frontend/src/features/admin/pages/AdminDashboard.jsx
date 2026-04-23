@@ -4,12 +4,25 @@ import api from "../../../api/axios";
 import { getApiErrorMessage } from "../../../api/getApiErrorMessage";
 import { useAuth } from "../../auth/context/useAuth";
 
+const ROLE_OPTIONS = ["USER", "TECHNICIAN", "ADMIN"];
+
+const INITIAL_TECHNICIAN_FORM = {
+  fullName: "",
+  email: "",
+  password: "",
+  phoneNumber: "",
+  department: "",
+  role: "TECHNICIAN",
+};
+
 function AdminDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [roleDrafts, setRoleDrafts] = useState({});
+  const [technicianForm, setTechnicianForm] = useState(INITIAL_TECHNICIAN_FORM);
   const [loading, setLoading] = useState(true);
+  const [creatingTechnician, setCreatingTechnician] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -35,6 +48,37 @@ function AdminDashboard() {
 
   const handleDraftChange = (userId, nextRole) => {
     setRoleDrafts((current) => ({ ...current, [userId]: nextRole }));
+  };
+
+  const handleTechnicianFormChange = (event) => {
+    const { name, value } = event.target;
+    setTechnicianForm((current) => ({ ...current, [name]: value }));
+  };
+
+  const handleCreateTechnician = async (event) => {
+    event.preventDefault();
+
+    try {
+      setCreatingTechnician(true);
+      setError("");
+      setNotice("");
+      await api.post("/users", {
+        fullName: technicianForm.fullName,
+        email: technicianForm.email,
+        password: technicianForm.password,
+        phoneNumber: technicianForm.phoneNumber,
+        department: technicianForm.department,
+        role: "TECHNICIAN",
+      });
+      setTechnicianForm(INITIAL_TECHNICIAN_FORM);
+      setNotice("Technician account created successfully.");
+      await loadUsers();
+    } catch (requestError) {
+      setNotice("");
+      setError(getApiErrorMessage(requestError, "Unable to create technician account."));
+    } finally {
+      setCreatingTechnician(false);
+    }
   };
 
   const handleRoleUpdate = async (userId) => {
@@ -67,6 +111,7 @@ function AdminDashboard() {
   const totalUsers = users.length;
   const activeUsers = users.filter((entry) => entry.active).length;
   const adminUsers = users.filter((entry) => entry.role === "ADMIN").length;
+  const technicianUsers = users.filter((entry) => entry.role === "TECHNICIAN").length;
   const incompleteUsers = users.filter((entry) => !entry.profileCompleted).length;
   const formatYear = (value) => {
     if (!value) {
@@ -109,6 +154,10 @@ function AdminDashboard() {
           <h2>{adminUsers}</h2>
         </article>
         <article className="card stat-card">
+          <p className="eyebrow">Technicians</p>
+          <h2>{technicianUsers}</h2>
+        </article>
+        <article className="card stat-card">
           <p className="eyebrow">Incomplete Profiles</p>
           <h2>{incompleteUsers}</h2>
         </article>
@@ -129,6 +178,95 @@ function AdminDashboard() {
 
       {error && <div className="alert alert-error">{error}</div>}
       {notice && <div className="alert alert-success">{notice}</div>}
+
+      <section className="card">
+        <div className="table-header">
+          <div>
+            <p className="eyebrow">Technician Access</p>
+            <h2>Create Technician</h2>
+          </div>
+        </div>
+
+        <form className="form-grid" onSubmit={handleCreateTechnician}>
+          <div className="form-columns">
+            <label className="input-group" htmlFor="technicianFullName">
+              <span>Name with initials</span>
+              <input
+                id="technicianFullName"
+                className="input"
+                name="fullName"
+                type="text"
+                value={technicianForm.fullName}
+                onChange={handleTechnicianFormChange}
+                placeholder="E.g. T.N. Fernando"
+                required
+              />
+            </label>
+
+            <label className="input-group" htmlFor="technicianEmail">
+              <span>Email</span>
+              <input
+                id="technicianEmail"
+                className="input"
+                name="email"
+                type="email"
+                value={technicianForm.email}
+                onChange={handleTechnicianFormChange}
+                placeholder="technician@example.com"
+                required
+              />
+            </label>
+
+            <label className="input-group" htmlFor="technicianPassword">
+              <span>Temporary password</span>
+              <input
+                id="technicianPassword"
+                className="input"
+                name="password"
+                type="password"
+                value={technicianForm.password}
+                onChange={handleTechnicianFormChange}
+                placeholder="Minimum 6 characters"
+                minLength={6}
+                required
+              />
+            </label>
+
+            <label className="input-group" htmlFor="technicianPhone">
+              <span>Phone number</span>
+              <input
+                id="technicianPhone"
+                className="input"
+                name="phoneNumber"
+                type="tel"
+                value={technicianForm.phoneNumber}
+                onChange={handleTechnicianFormChange}
+                placeholder="07XXXXXXXX"
+                required
+              />
+            </label>
+
+            <label className="input-group" htmlFor="technicianDepartment">
+              <span>Department</span>
+              <input
+                id="technicianDepartment"
+                className="input"
+                name="department"
+                type="text"
+                value={technicianForm.department}
+                onChange={handleTechnicianFormChange}
+                placeholder="Technical Services"
+              />
+            </label>
+          </div>
+
+          <div className="actions-row">
+            <button className="btn btn-primary" type="submit" disabled={creatingTechnician}>
+              {creatingTechnician ? "Creating..." : "Create Technician"}
+            </button>
+          </div>
+        </form>
+      </section>
 
       <section className="card">
         <div className="table-header">
@@ -175,8 +313,11 @@ function AdminDashboard() {
                           onChange={(event) => handleDraftChange(entry.id, event.target.value)}
                           disabled={isSelf}
                         >
-                          <option value="USER">USER</option>
-                          <option value="ADMIN">ADMIN</option>
+                          {ROLE_OPTIONS.map((role) => (
+                            <option key={role} value={role}>
+                              {role}
+                            </option>
+                          ))}
                         </select>
                       </td>
                       <td>
