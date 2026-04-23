@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { FiCalendar, FiCheckCircle, FiClock } from "react-icons/fi";
 import { bookingService } from "../api/bookingService";
 import BookingCard from "../components/BookingCard";
+import "../booking.css";
 
 function MyBookingsPage() {
   const [bookings, setBookings] = useState([]);
@@ -29,7 +31,7 @@ function MyBookingsPage() {
 
   const handleCancel = async (bookingId) => {
     if (!window.confirm("Are you sure you want to cancel this booking?")) return;
-    
+
     try {
       await bookingService.cancelBooking(bookingId);
       fetchBookings();
@@ -39,72 +41,136 @@ function MyBookingsPage() {
     }
   };
 
-  const filteredBookings = bookings.filter((b) => 
-    filterStatus === "ALL" ? true : b.status === filterStatus
+  const filteredBookings = bookings.filter((booking) =>
+    filterStatus === "ALL" ? true : booking.status === filterStatus,
   );
 
   const statuses = ["ALL", "PENDING", "APPROVED", "REJECTED", "CANCELLED"];
+  const approvedCount = bookings.filter((booking) => booking.status === "APPROVED").length;
+  const pendingCount = bookings.filter((booking) => booking.status === "PENDING").length;
 
   return (
-    <div className="page-stack">
-      <div className="page-header">
+    <div className="booking-page">
+      <section className="booking-hero">
         <div>
-          <h1 style={{ marginBottom: "8px" }}>My Bookings</h1>
-          <p className="page-subtitle">Track and manage your resource reservations.</p>
+          <p className="eyebrow">Booking History</p>
+          <h1>My Bookings</h1>
+          <p className="page-subtitle booking-hero-copy">
+            Track upcoming reservations, review past decisions, and manage resource bookings with the same polished layout used across the app.
+          </p>
+          <div className="booking-hero-actions">
+            <Link to="/resources" className="btn">
+              Book resource
+            </Link>
+          </div>
         </div>
-        <div className="actions-row">
-          <Link to="/resources" className="btn">
-            Book Resource
-          </Link>
-        </div>
-      </div>
 
-      <div className="filter-bar mb-4" style={{ display: "flex", gap: "8px", overflowX: "auto", paddingBottom: "8px" }}>
-        {statuses.map((status) => (
-          <button
-            key={status}
-            onClick={() => setFilterStatus(status)}
-            className={`btn btn-sm ${filterStatus === status ? "btn-primary" : "btn-outline-secondary"}`}
-            style={{ textTransform: "capitalize" }}
-          >
-            {status.toLowerCase()}
-          </button>
-        ))}
-      </div>
-
-      {error && (
-        <div className="alert alert-error">
-          {error}
+        <div className="booking-highlight-list">
+          <article className="booking-highlight-card">
+            <span>Total reservations</span>
+            <strong>{bookings.length}</strong>
+          </article>
+          <article className="booking-highlight-card">
+            <span>Approved</span>
+            <strong>{approvedCount}</strong>
+          </article>
+          <article className="booking-highlight-card">
+            <span>Awaiting review</span>
+            <strong>{pendingCount}</strong>
+          </article>
         </div>
-      )}
+      </section>
+
+      <section className="booking-stats-grid">
+        <article className="card booking-stat-card ticket-accent-indigo">
+          <div className="booking-stat-icon">
+            <FiCalendar />
+          </div>
+          <div className="booking-stat-copy">
+            <p>Bookings</p>
+            <h2>{bookings.length}</h2>
+          </div>
+        </article>
+        <article className="card booking-stat-card ticket-accent-green">
+          <div className="booking-stat-icon">
+            <FiCheckCircle />
+          </div>
+          <div className="booking-stat-copy">
+            <p>Approved</p>
+            <h2>{approvedCount}</h2>
+          </div>
+        </article>
+        <article className="card booking-stat-card ticket-accent-amber">
+          <div className="booking-stat-icon">
+            <FiClock />
+          </div>
+          <div className="booking-stat-copy">
+            <p>Pending</p>
+            <h2>{pendingCount}</h2>
+          </div>
+        </article>
+      </section>
+
+      <section className="booking-filter-card">
+        <div className="booking-filter-bar">
+          <div>
+            <p className="eyebrow">View Options</p>
+            <h2>Filter by booking status</h2>
+          </div>
+          <div className="booking-results-count">{filteredBookings.length} visible</div>
+        </div>
+        <div className="booking-filter-shell">
+          {statuses.map((status) => (
+            <button
+              key={status}
+              onClick={() => setFilterStatus(status)}
+              className={`booking-filter-tab ${filterStatus === status ? "active" : ""}`}
+            >
+              {status.charAt(0) + status.slice(1).toLowerCase()}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {error ? <div className="alert alert-error">{error}</div> : null}
 
       {loading ? (
-        <div className="loading-card card">
-          Loading your bookings...
-        </div>
+        <article className="booking-loading-card">
+          <span className="booking-spinner" aria-hidden="true" />
+          <p className="page-subtitle">Retrieving your bookings...</p>
+        </article>
       ) : filteredBookings.length === 0 ? (
-        <div className="empty-state card" style={{ padding: "48px 24px" }}>
-          <h3>No {filterStatus !== "ALL" ? filterStatus.toLowerCase() : ""} bookings found</h3>
-          <p className="helper-text" style={{ marginBottom: "20px", marginTop: "8px" }}>
-            {filterStatus === "ALL" 
-              ? "You haven't made any resource reservations yet." 
+        <article className="booking-empty-state">
+          <h3>No {filterStatus !== "ALL" ? filterStatus.toLowerCase() : ""} bookings</h3>
+          <p className="page-subtitle">
+            {filterStatus === "ALL"
+              ? "You haven't made any resource reservations yet."
               : `You don't have any bookings with status ${filterStatus.toLowerCase()}.`}
           </p>
           <Link to="/resources" className="btn btn-secondary">
-            Book Resource
+            Browse resources
           </Link>
-        </div>
+        </article>
       ) : (
-        <div className="dashboard-grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))" }}>
-          {filteredBookings.map((booking) => (
-            <BookingCard 
-              key={booking.id} 
-              booking={booking} 
-              onCancel={handleCancel} 
-              isAdmin={false}
-            />
-          ))}
-        </div>
+        <section className="booking-section-head">
+          <div className="booking-section-bar">
+            <div>
+              <p className="eyebrow">Reservation Feed</p>
+              <h2>Your current booking records</h2>
+            </div>
+            <div className="booking-results-count">{filteredBookings.length} cards</div>
+          </div>
+          <div className="booking-card-grid">
+            {filteredBookings.map((booking) => (
+              <BookingCard
+                key={booking.id}
+                booking={booking}
+                onCancel={handleCancel}
+                isAdmin={false}
+              />
+            ))}
+          </div>
+        </section>
       )}
     </div>
   );

@@ -1,86 +1,78 @@
 import React from "react";
-import { Link } from "react-router-dom";
 
 const BookingCard = ({ booking, onCancel, isAdmin, onReview }) => {
   const getStatusBadgeClass = (status) => {
     switch (status) {
       case "APPROVED":
-        return "status-active"; // Green
+        return "status-active";
       case "PENDING":
-        return "status-pending"; // Yellow
+        return "status-pending";
       case "REJECTED":
       case "CANCELLED":
-        return "status-inactive"; // Gray
+        return "status-inactive";
       default:
         return "status-inactive";
     }
   };
 
   return (
-    <div className="card" style={{ display: "flex", flexDirection: "column", gap: "12px", position: "relative" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h3 style={{ margin: 0 }}>{booking.resourceName}</h3>
+    <article className="booking-card">
+      <div className="booking-card-header">
+        <div className="booking-card-title">
+          <p className="eyebrow">Resource</p>
+          <h2>{booking.resourceName}</h2>
+          <p className="booking-card-schedule">
+            {booking.bookingDate} | {booking.startTime} - {booking.endTime}
+          </p>
+        </div>
         <span className={`status-badge ${getStatusBadgeClass(booking.status)}`}>
           {booking.status}
         </span>
       </div>
-      
-      <div className="detail-list" style={{ marginTop: "4px" }}>
-        <div>
-          <dt>Date & Time</dt>
-          <dd>{booking.bookingDate} | {booking.startTime} - {booking.endTime}</dd>
+
+      <div className="booking-detail-grid">
+        <div className="booking-detail-card">
+          <p className="booking-detail-label">Purpose</p>
+          <p className="booking-detail-value">{booking.purpose}</p>
         </div>
-        <div>
-          <dt>Purpose</dt>
-          <dd>{booking.purpose}</dd>
+        <div className="booking-detail-card">
+          <p className="booking-detail-label">Headcount</p>
+          <p className="booking-detail-value">{booking.expectedAttendees} persons</p>
         </div>
-        <div>
-          <dt>Attendees</dt>
-          <dd>{booking.expectedAttendees}</dd>
-        </div>
-        {isAdmin && (
-          <div>
-            <dt>Requested By</dt>
-            <dd>{booking.userName}</dd>
+        {isAdmin ? (
+          <div className="booking-detail-card">
+            <p className="booking-detail-label">Requested by</p>
+            <p className="booking-detail-value">{booking.userName}</p>
           </div>
-        )}
-        {booking.adminReason && (
-          <div>
-            <dt>Admin Note</dt>
-            <dd style={{ fontStyle: "italic", color: "var(--muted)" }}>{booking.adminReason}</dd>
-          </div>
-        )}
+        ) : null}
       </div>
 
-      <div className="actions-row compact-actions" style={{ marginTop: "auto", paddingTop: "16px" }}>
-        {!isAdmin && (booking.status === "PENDING" || booking.status === "APPROVED") && (
-          <button 
-            className="btn btn-secondary btn-sm" 
-            onClick={() => onCancel(booking.id)}
-          >
-            Cancel Booking
-          </button>
-        )}
+      {booking.adminReason ? (
+        <div className="booking-card-note">
+          <p className="booking-detail-label">Admin note</p>
+          <p className="booking-detail-value">{booking.adminReason}</p>
+        </div>
+      ) : null}
 
-        {isAdmin && booking.status === "PENDING" && (
+      <div className="booking-card-actions">
+        {!isAdmin && (booking.status === "PENDING" || booking.status === "APPROVED") ? (
+          <button className="btn btn-secondary" onClick={() => onCancel(booking.id)}>
+            Cancel reservation
+          </button>
+        ) : null}
+
+        {isAdmin && booking.status === "PENDING" ? (
           <>
-            <button 
-              className="btn btn-success btn-sm" 
-              style={{ background: "#16a34a", color: "#fff" }}
-              onClick={() => onReview(booking.id, "APPROVED")}
-            >
+            <button className="btn" onClick={() => onReview(booking.id, "APPROVED")}>
               Approve
             </button>
-            <button 
-              className="btn btn-danger btn-sm" 
-              onClick={() => onReview(booking.id, "REJECTED")}
-            >
+            <button className="btn btn-danger" onClick={() => onReview(booking.id, "REJECTED")}>
               Reject
             </button>
           </>
-        )}
+        ) : null}
       </div>
-    </div>
+    </article>
   );
 };
 
