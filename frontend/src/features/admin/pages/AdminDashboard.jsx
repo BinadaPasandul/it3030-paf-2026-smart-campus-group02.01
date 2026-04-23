@@ -112,6 +112,19 @@ function AdminDashboard() {
         </article>
       </section>
 
+      <section className="dashboard-grid">
+        <div className="card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <p className="eyebrow">Operations & Support</p>
+            <h2>Incident Tickets</h2>
+            <p className="page-subtitle">Manage campus maintenance requests and support tickets.</p>
+          </div>
+          <button className="btn btn-primary" onClick={() => navigate("/tickets")}>
+            Open Hub
+          </button>
+        </div>
+      </section>
+
       {error && <div className="alert alert-error">{error}</div>}
       {notice && <div className="alert alert-success">{notice}</div>}
 
