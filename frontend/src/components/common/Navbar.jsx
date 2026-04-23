@@ -2,6 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { FiMenu, FiX } from "react-icons/fi";
 import { useAuth } from "../../features/auth/context/useAuth";
 import Sidebar from "./Sidebar";
+import NotificationMenu from "./NotificationMenu";
 
 function Navbar({ menuOpen, onToggleMenu }) {
   const navigate = useNavigate();
@@ -44,7 +45,8 @@ function Navbar({ menuOpen, onToggleMenu }) {
                 </Link>
               </>
             ) : (
-              <>
+              <div style={{ display: "flex", alignItems: "center" }}>
+                <NotificationMenu />
                 <span className="user-badge">
                   <Link to={accountHomePath}>{user?.fullName || user?.email}</Link>
                   {user?.profileCompleted ? ` (${user?.role})` : " (Profile incomplete)"}
@@ -52,7 +54,7 @@ function Navbar({ menuOpen, onToggleMenu }) {
                 <button className="btn btn-secondary" onClick={handleLogout}>
                   Logout
                 </button>
-              </>
+              </div>
             )}
           </div>
         </div>
