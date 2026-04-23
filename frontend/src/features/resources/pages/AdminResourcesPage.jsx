@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { FiActivity, FiCheckCircle, FiDatabase, FiLayers, FiMapPin, FiRefreshCw } from "react-icons/fi";
 import {
   createResource,
   deleteResource,
@@ -8,6 +9,12 @@ import {
 } from "../../../api/resourceApi";
 import { getApiErrorMessage } from "../../../api/getApiErrorMessage";
 import ResourceForm from "../components/ResourceForm";
+import {
+  formatLabel,
+  getAvailabilityRange,
+  getResourceStatusClass,
+} from "../resourceUi";
+import "../resources.css";
 
 function AdminResourcesPage() {
   const [resources, setResources] = useState([]);
@@ -120,91 +127,228 @@ function AdminResourcesPage() {
     setFormResetKey((current) => current + 1);
   };
 
+  const stats = useMemo(() => {
+    const active = resources.filter((resource) => resource.status === "ACTIVE").length;
+    const inactive = resources.filter((resource) => resource.status !== "ACTIVE").length;
+    const totalCapacity = resources.reduce(
+      (sum, resource) => sum + (Number(resource.capacity) || 0),
+      0,
+    );
+    const locations = new Set(resources.map((resource) => resource.location).filter(Boolean)).size;
+
+    return {
+      total: resources.length,
+      active,
+      inactive,
+      capacity: totalCapacity,
+      locations,
+    };
+  }, [resources]);
+
   return (
-    <div className="container py-4">
-      <h2 className="mb-4">Admin Resource Management</h2>
+    <div className="resource-admin-page">
+      <section className="resource-admin-hero">
+        <div>
+          <p className="eyebrow">Admin Resource Operations</p>
+          <h1>Manage rooms, labs, and shared assets</h1>
+          <p className="page-subtitle resource-admin-hero-copy">
+            Create new resource entries, update availability, and keep the campus inventory aligned with real booking conditions.
+          </p>
+        </div>
+        <div className="resource-admin-live-pill">
+          <span className="resource-admin-live-dot" />
+          Inventory control active
+        </div>
+      </section>
 
-      {message && <div className="alert alert-success">{message}</div>}
-      {error && <div className="alert alert-danger">{error}</div>}
+      <section className="resource-stats-grid">
+        <article className="card resource-stat-card ticket-accent-indigo">
+          <div className="resource-stat-icon">
+            <FiDatabase />
+          </div>
+          <div>
+            <p className="eyebrow">Total Resources</p>
+            <h2>{stats.total}</h2>
+          </div>
+        </article>
+        <article className="card resource-stat-card ticket-accent-green">
+          <div className="resource-stat-icon">
+            <FiCheckCircle />
+          </div>
+          <div>
+            <p className="eyebrow">Active Resources</p>
+            <h2>{stats.active}</h2>
+          </div>
+        </article>
+        <article className="card resource-stat-card ticket-accent-amber">
+          <div className="resource-stat-icon">
+            <FiActivity />
+          </div>
+          <div>
+            <p className="eyebrow">Managed Capacity</p>
+            <h2>{stats.capacity}</h2>
+          </div>
+        </article>
+        <article className="card resource-stat-card ticket-accent-slate">
+          <div className="resource-stat-icon">
+            <FiMapPin />
+          </div>
+          <div>
+            <p className="eyebrow">Locations</p>
+            <h2>{stats.locations}</h2>
+          </div>
+        </article>
+      </section>
 
-      <div className="mb-5">
+      {message ? <div className="alert alert-success">{message}</div> : null}
+      {error ? <div className="alert alert-error">{error}</div> : null}
+
+      <section className="resource-admin-layout">
         <ResourceForm
           key={`${editingResource?.code ?? "create"}-${formResetKey}`}
           initialValues={editingResource}
           onSubmit={editingResource ? handleUpdate : handleCreate}
           onCancel={editingResource ? handleCancelEdit : undefined}
           submitLabel={editingResource ? "Update Resource" : "Create Resource"}
+          title={editingResource ? "Update selected resource" : "Create a new resource entry"}
+          subtitle={
+            editingResource
+              ? "Adjust capacity, location, description, or operating hours for the selected inventory item."
+              : "Add a fresh catalogue item with the details students and staff need before booking."
+          }
         />
-      </div>
 
-      <div className="card shadow-sm border-0">
-        <div className="card-body">
-          <h4 className="mb-3">Existing Resources</h4>
+        <aside className="resource-admin-side-panel">
+          <article className="card resource-form-note">
+            <p className="eyebrow">Workspace Status</p>
+            <h2>{editingResource ? "Editing existing inventory" : "Ready to create"}</h2>
+            <p>
+              {editingResource
+                ? "You are modifying a live resource record. Save changes when the updated schedule and metadata are correct."
+                : "Use the form to introduce new bookable rooms or assets into the system without affecting other modules."}
+            </p>
+          </article>
 
-          <div className="table-responsive">
-            <table className="table table-bordered align-middle">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Code</th>
-                  <th>Type</th>
-                  <th>Capacity</th>
-                  <th>Location</th>
-                  <th>Availability</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
+          <article className="card resource-form-note">
+            <p className="eyebrow">Inventory Snapshot</p>
+            <div className="resource-highlight-list">
+              <div className="resource-mini-card">
+                <span>Out of service</span>
+                <strong>{stats.inactive}</strong>
+              </div>
+              <div className="resource-mini-card">
+                <span>Bookable now</span>
+                <strong>{stats.active}</strong>
+              </div>
+              <div className="resource-mini-card">
+                <span>Coverage</span>
+                <strong>{stats.locations} locations</strong>
+              </div>
+            </div>
+          </article>
+        </aside>
+      </section>
 
-              <tbody>
-                {resources.length > 0 ? (
-                  resources.map((resource) => (
-                    <tr key={resource.id}>
-                      <td>{resource.name}</td>
-                      <td>{resource.code}</td>
-                      <td>{resource.type}</td>
-                      <td>{resource.capacity}</td>
-                      <td>{resource.location}</td>
-                      <td>
-                        {resource.availableFrom} - {resource.availableTo}
-                      </td>
-                      <td>{resource.status}</td>
-                      <td className="d-flex gap-2">
+      <article className="card resource-admin-table-card">
+        <div className="ticket-list-header">
+          <div>
+            <p className="eyebrow">Resource Inventory</p>
+            <h2>Existing resources</h2>
+            <p className="resource-table-meta">
+              Review the live catalogue, change status, or open any resource for editing.
+            </p>
+          </div>
+          <div className="resource-inline-actions">
+            <div className="resource-results-count">
+              <FiLayers />
+              {resources.length} items
+            </div>
+            <button type="button" className="btn btn-secondary" onClick={loadResources}>
+              <FiRefreshCw />
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <div className="table-wrapper">
+          <table className="table resource-admin-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Capacity</th>
+                <th>Location</th>
+                <th>Availability</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {resources.length > 0 ? (
+                resources.map((resource) => (
+                  <tr key={resource.id}>
+                    <td>
+                      <button
+                        type="button"
+                        className="resource-title-button"
+                        onClick={() => handleEdit(resource)}
+                      >
+                        <span>{resource.code}</span>
+                        {resource.name}
+                      </button>
+                    </td>
+                    <td>{formatLabel(resource.type)}</td>
+                    <td>
+                      <span className="resource-capacity-chip">{resource.capacity} people</span>
+                    </td>
+                    <td>{resource.location}</td>
+                    <td>{getAvailabilityRange(resource)}</td>
+                    <td>
+                      <span className={`status-badge ${getResourceStatusClass(resource.status)}`}>
+                        {formatLabel(resource.status)}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="resource-inline-actions">
                         <button
-                          className="btn btn-sm btn-primary"
+                          type="button"
+                          className="btn btn-ghost btn-sm"
                           onClick={() => handleEdit(resource)}
                         >
                           Edit
                         </button>
 
                         <button
-                          className="btn btn-sm btn-warning"
+                          type="button"
+                          className="btn btn-secondary btn-sm"
                           onClick={() => handleToggleStatus(resource)}
                         >
-                          Toggle Status
+                          {resource.status === "ACTIVE" ? "Mark Out" : "Mark Active"}
                         </button>
 
                         <button
-                          className="btn btn-sm btn-danger"
+                          type="button"
+                          className="btn btn-danger btn-sm"
                           onClick={() => handleDelete(resource.id)}
                         >
                           Delete
                         </button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="8" className="text-center">
-                      No resources available.
+                      </div>
                     </td>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                ))
+              ) : (
+                <tr className="resource-admin-empty">
+                  <td colSpan="7">
+                    <p className="page-subtitle">No resources available yet.</p>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
-      </div>
+      </article>
     </div>
   );
 }
