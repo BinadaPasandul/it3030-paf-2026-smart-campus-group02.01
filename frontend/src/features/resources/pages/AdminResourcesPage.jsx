@@ -18,15 +18,16 @@ function AdminResourcesPage() {
 
   const loadResources = async () => {
     try {
-      setError("");
       const data = await getAllResources();
       setResources(data);
+      setError("");
     } catch (requestError) {
       setError(getApiErrorMessage(requestError, "Failed to load resources."));
     }
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadResources();
   }, []);
 

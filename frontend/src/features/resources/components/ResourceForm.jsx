@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 const RESOURCE_TYPES = [
   "LECTURE_HALL",
@@ -20,18 +20,14 @@ const defaultFormData = {
 };
 
 function ResourceForm({ initialValues, onSubmit, onCancel, submitLabel = "Save Resource" }) {
-  const [formData, setFormData] = useState(defaultFormData);
-
-  useEffect(() => {
-    setFormData(
-      initialValues
-        ? {
-            ...defaultFormData,
-            ...initialValues,
-          }
-        : defaultFormData
-    );
-  }, [initialValues]);
+  const [formData, setFormData] = useState(() => 
+    initialValues
+      ? {
+          ...defaultFormData,
+          ...initialValues,
+        }
+      : defaultFormData
+  );
 
   const handleChange = (e) => {
     const { name, value } = e.target;
