@@ -1,7 +1,9 @@
 package com.smartcampus.hub.resource.service;
 
+import com.smartcampus.hub.booking.repository.BookingRepository;
 import com.smartcampus.hub.exception.DuplicateEntityException;
 import com.smartcampus.hub.exception.ResourceNotFoundException;
+import com.smartcampus.hub.exception.ResourceInUseException;
 import com.smartcampus.hub.resource.dto.CreateResourceRequest;
 import com.smartcampus.hub.resource.dto.ResourceResponse;
 import com.smartcampus.hub.resource.dto.UpdateResourceRequest;
@@ -20,9 +22,11 @@ import java.util.List;
 public class ResourceServiceImpl implements ResourceService {
 
     private final ResourceRepository resourceRepository;
+    private final BookingRepository bookingRepository;
 
-    public ResourceServiceImpl(ResourceRepository resourceRepository) {
+    public ResourceServiceImpl(ResourceRepository resourceRepository, BookingRepository bookingRepository) {
         this.resourceRepository = resourceRepository;
+        this.bookingRepository = bookingRepository;
     }
 
     @Override
@@ -125,6 +129,12 @@ public class ResourceServiceImpl implements ResourceService {
     public void deleteResource(Long id) {
         Resource resource = resourceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found with id: " + id));
+
+        if (bookingRepository.existsByResourceId(id)) {
+            throw new ResourceInUseException(
+                    "This resource cannot be deleted because it is linked to existing bookings. Mark it as OUT_OF_SERVICE instead."
+            );
+        }
 
         resourceRepository.delete(resource);
     }

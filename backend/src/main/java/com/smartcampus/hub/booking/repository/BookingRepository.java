@@ -17,6 +17,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     List<Booking> findByStatus(BookingStatus status);
 
+    boolean existsByResourceId(Long resourceId);
+
     @Query("SELECT b FROM Booking b WHERE b.resource.id = :resourceId " +
            "AND b.bookingDate = :date " +
            "AND (:excludeId IS NULL OR b.id <> :excludeId) " +
