@@ -1,7 +1,9 @@
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { FiMenu, FiX } from "react-icons/fi";
 import { useAuth } from "../../features/auth/context/useAuth";
+import Sidebar from "./Sidebar";
 
-function Navbar() {
+function Navbar({ menuOpen, onToggleMenu }) {
   const navigate = useNavigate();
   const { user, isAuthenticated, isAdmin, logout, getHomePathForUser } = useAuth();
 
@@ -13,62 +15,57 @@ function Navbar() {
   };
 
   return (
-    <nav className="navbar">
-      <div className="container navbar-content">
-        <div className="nav-left">
-          <Link to="/" className="brand">
-            Smart Campus
-          </Link>
-        </div>
-
-        <div className="nav-links">
-          <NavLink className={({ isActive }) => (isActive ? "active" : undefined)} to="/">
-            Home
-          </NavLink>
-
-          {isAuthenticated && !user?.profileCompleted && (
-            <NavLink
-              className={({ isActive }) => (isActive ? "active" : undefined)}
-              to="/complete-profile"
+    <>
+      <nav className="navbar">
+        <div className="container navbar-content">
+          <div className="nav-left nav-left-shell">
+            <button
+              type="button"
+              className="menu-toggle"
+              aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
+              aria-expanded={menuOpen}
+              onClick={onToggleMenu}
             >
-              Complete Profile
-            </NavLink>
-          )}
+              {menuOpen ? <FiX /> : <FiMenu />}
+            </button>
+            <Link to="/" className="brand">
+              Smart Campus
+            </Link>
+          </div>
 
-          {isAuthenticated && user?.profileCompleted && (
-            <NavLink className={({ isActive }) => (isActive ? "active" : undefined)} to="/profile">
-              Profile
-            </NavLink>
-          )}
-          {isAdmin && user?.profileCompleted && (
-            <NavLink className={({ isActive }) => (isActive ? "active" : undefined)} to="/admin">
-              Admin
-            </NavLink>
-          )}
-
-          {!isAuthenticated ? (
-            <>
-              <Link className="btn btn-secondary" to="/register">
-                Register
-              </Link>
-              <Link className="btn" to="/login">
-                Login
-              </Link>
-            </>
-          ) : (
-            <>
-              <span className="user-badge">
-                <Link to={accountHomePath}>{user?.fullName || user?.email}</Link>
-                {user?.profileCompleted ? ` (${user?.role})` : " (Profile incomplete)"}
-              </span>
-              <button className="btn btn-secondary" onClick={handleLogout}>
-                Logout
-              </button>
-            </>
-          )}
+          <div className="nav-links nav-links-right">
+            {!isAuthenticated ? (
+              <>
+                <Link className="btn btn-secondary" to="/register">
+                  Register
+                </Link>
+                <Link className="btn" to="/login">
+                  Login
+                </Link>
+              </>
+            ) : (
+              <>
+                <span className="user-badge">
+                  <Link to={accountHomePath}>{user?.fullName || user?.email}</Link>
+                  {user?.profileCompleted ? ` (${user?.role})` : " (Profile incomplete)"}
+                </span>
+                <button className="btn btn-secondary" onClick={handleLogout}>
+                  Logout
+                </button>
+              </>
+            )}
+          </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+
+      <Sidebar
+        menuOpen={menuOpen}
+        isAuthenticated={isAuthenticated}
+        isAdmin={isAdmin}
+        user={user}
+        onLogout={handleLogout}
+      />
+    </>
   );
 }
 

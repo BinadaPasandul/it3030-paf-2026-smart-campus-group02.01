@@ -90,6 +90,32 @@ function ProfilePage() {
           </button>
         </div>
       </section>
+
+      <section className="card profile-card" style={{ height: "fit-content" }}>
+        <p className="eyebrow">Support & Incidents</p>
+        <h2>Need Help?</h2>
+        <p className="page-subtitle">
+          Report technical issues or facility maintenance requests directly to our team.
+        </p>
+
+        <div className="dashboard-stack" style={{ marginTop: "1.5rem" }}>
+          <button className="btn btn-primary" onClick={() => navigate("/tickets")}>
+            My Tickets Dashboard
+          </button>
+          <button className="btn btn-secondary" onClick={() => navigate("/tickets/new")}>
+            Report New Issue
+          </button>
+        </div>
+
+        <div className="info-panel" style={{ marginTop: "2rem" }}>
+          <p className="eyebrow">Current Scope</p>
+          <ul className="feature-list" style={{ marginTop: "0.5rem" }}>
+            <li>Facility Breakages</li>
+            <li>IT & Network Issues</li>
+            <li>Classroom Maintenance</li>
+          </ul>
+        </div>
+      </section>
     </div>
   );
 }

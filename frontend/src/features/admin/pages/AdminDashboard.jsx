@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
 import { getApiErrorMessage } from "../../../api/getApiErrorMessage";
 import { useAuth } from "../../auth/context/useAuth";
 
 function AdminDashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [roleDrafts, setRoleDrafts] = useState({});
   const [loading, setLoading] = useState(true);
@@ -110,6 +112,19 @@ function AdminDashboard() {
           <p className="eyebrow">Incomplete Profiles</p>
           <h2>{incompleteUsers}</h2>
         </article>
+      </section>
+
+      <section className="dashboard-grid">
+        <div className="card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <p className="eyebrow">Operations & Support</p>
+            <h2>Incident Tickets</h2>
+            <p className="page-subtitle">Manage campus maintenance requests and support tickets.</p>
+          </div>
+          <button className="btn btn-primary" onClick={() => navigate("/tickets")}>
+            Open Hub
+          </button>
+        </div>
       </section>
 
       {error && <div className="alert alert-error">{error}</div>}
