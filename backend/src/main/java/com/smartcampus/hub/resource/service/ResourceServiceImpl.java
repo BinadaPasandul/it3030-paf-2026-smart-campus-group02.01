@@ -5,6 +5,7 @@ import com.smartcampus.hub.exception.DuplicateEntityException;
 import com.smartcampus.hub.exception.ResourceNotFoundException;
 import com.smartcampus.hub.exception.ResourceInUseException;
 import com.smartcampus.hub.resource.dto.CreateResourceRequest;
+import com.smartcampus.hub.resource.dto.ResourceBlockResponse;
 import com.smartcampus.hub.resource.dto.ResourceResponse;
 import com.smartcampus.hub.resource.dto.UpdateResourceRequest;
 import com.smartcampus.hub.resource.entity.Resource;
@@ -23,10 +24,14 @@ public class ResourceServiceImpl implements ResourceService {
 
     private final ResourceRepository resourceRepository;
     private final BookingRepository bookingRepository;
+    private final ResourceBlockService resourceBlockService;
 
-    public ResourceServiceImpl(ResourceRepository resourceRepository, BookingRepository bookingRepository) {
+    public ResourceServiceImpl(ResourceRepository resourceRepository,
+                               BookingRepository bookingRepository,
+                               ResourceBlockService resourceBlockService) {
         this.resourceRepository = resourceRepository;
         this.bookingRepository = bookingRepository;
+        this.resourceBlockService = resourceBlockService;
     }
 
     @Override
@@ -48,7 +53,7 @@ public class ResourceServiceImpl implements ResourceService {
         resource.setAvailableTo(request.getAvailableTo());
         resource.setStatus(ResourceStatus.ACTIVE);
 
-        return mapToResponse(resourceRepository.save(resource));
+        return mapToResponse(resourceRepository.save(resource), true);
     }
 
     @Override
@@ -74,13 +79,10 @@ public class ResourceServiceImpl implements ResourceService {
                     cb.greaterThanOrEqualTo(root.get("capacity"), minCapacity));
         }
 
-        if (status != null) {
-            spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), status));
-        }
-
         return resourceRepository.findAll(spec)
                 .stream()
-                .map(this::mapToResponse)
+                .map(resource -> mapToResponse(resource, false))
+                .filter(resource -> status == null || resource.getStatus() == status)
                 .toList();
     }
 
@@ -89,7 +91,7 @@ public class ResourceServiceImpl implements ResourceService {
         Resource resource = resourceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found with id: " + id));
 
-        return mapToResponse(resource);
+        return mapToResponse(resource, true);
     }
 
     @Override
@@ -112,7 +114,7 @@ public class ResourceServiceImpl implements ResourceService {
         resource.setAvailableFrom(request.getAvailableFrom());
         resource.setAvailableTo(request.getAvailableTo());
 
-        return mapToResponse(resourceRepository.save(resource));
+        return mapToResponse(resourceRepository.save(resource), true);
     }
 
     @Override
@@ -122,7 +124,7 @@ public class ResourceServiceImpl implements ResourceService {
 
         resource.setStatus(status);
 
-        return mapToResponse(resourceRepository.save(resource));
+        return mapToResponse(resourceRepository.save(resource), true);
     }
 
     @Override
@@ -136,6 +138,7 @@ public class ResourceServiceImpl implements ResourceService {
             );
         }
 
+        resourceBlockService.deleteBlocksForResource(id);
         resourceRepository.delete(resource);
     }
 
@@ -149,20 +152,37 @@ public class ResourceServiceImpl implements ResourceService {
         }
     }
 
-    private ResourceResponse mapToResponse(Resource resource) {
-        return new ResourceResponse(
-                resource.getId(),
-                resource.getName(),
-                resource.getCode(),
-                resource.getType(),
-                resource.getCapacity(),
-                resource.getLocation(),
-                resource.getDescription(),
-                resource.getStatus(),
-                resource.getAvailableFrom(),
-                resource.getAvailableTo(),
-                resource.getCreatedAt(),
-                resource.getUpdatedAt()
-        );
+    private ResourceResponse mapToResponse(Resource resource, boolean includeBlocks) {
+        List<ResourceBlockResponse> blocks = resourceBlockService.getCurrentAndUpcomingBlocks(resource.getId());
+        ResourceBlockResponse currentBlock = blocks.stream()
+                .filter(ResourceBlockResponse::isActiveNow)
+                .findFirst()
+                .orElse(null);
+
+        ResourceStatus effectiveStatus = resource.getStatus() != ResourceStatus.ACTIVE || currentBlock != null
+                ? ResourceStatus.OUT_OF_SERVICE
+                : ResourceStatus.ACTIVE;
+
+        ResourceResponse response = new ResourceResponse();
+        response.setId(resource.getId());
+        response.setName(resource.getName());
+        response.setCode(resource.getCode());
+        response.setType(resource.getType());
+        response.setCapacity(resource.getCapacity());
+        response.setLocation(resource.getLocation());
+        response.setDescription(resource.getDescription());
+        response.setStatus(effectiveStatus);
+        response.setBaseStatus(resource.getStatus());
+        response.setCurrentlyBlocked(currentBlock != null);
+        response.setPermanentlyUnavailable(resource.getStatus() != ResourceStatus.ACTIVE);
+        response.setCurrentBlockReason(currentBlock != null ? currentBlock.getReason() : null);
+        response.setScheduledBlockCount(blocks.size());
+        response.setNextScheduledBlock(blocks.isEmpty() ? null : blocks.get(0));
+        response.setScheduledBlocks(includeBlocks ? blocks : List.of());
+        response.setAvailableFrom(resource.getAvailableFrom());
+        response.setAvailableTo(resource.getAvailableTo());
+        response.setCreatedAt(resource.getCreatedAt());
+        response.setUpdatedAt(resource.getUpdatedAt());
+        return response;
     }
 }

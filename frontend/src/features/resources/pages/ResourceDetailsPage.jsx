@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { FiCalendar, FiClock, FiMapPin, FiShield, FiTag, FiUsers } from "react-icons/fi";
 import { getResourceById } from "../../../api/resourceApi";
+import ResourceBlockList from "../components/ResourceBlockList";
 import {
   formatLabel,
   getAvailabilityRange,
@@ -70,7 +71,7 @@ function ResourceDetailsPage() {
   }
 
   const { icon: ResourceIcon, tone, label } = getResourceTypeMeta(resource.type);
-  const isActive = resource.status === "ACTIVE";
+  const bookingDisabled = resource.permanentlyUnavailable;
 
   return (
     <div className="resource-details-page">
@@ -78,9 +79,12 @@ function ResourceDetailsPage() {
         <Link to="/resources" className="btn btn-ghost">
           Back to catalogue
         </Link>
-        <span className={`status-badge ${getResourceStatusClass(resource.status)}`}>
-          {formatLabel(resource.status)}
-        </span>
+        <div className="resource-card-badge-row">
+          <span className={`status-badge ${getResourceStatusClass(resource.status)}`}>
+            Current: {formatLabel(resource.status)}
+          </span>
+          <span className="resource-code-chip">Permanent: {formatLabel(resource.baseStatus)}</span>
+        </div>
       </div>
 
       <section className="resource-hero">
@@ -112,6 +116,20 @@ function ResourceDetailsPage() {
         </div>
       </section>
 
+      {(resource.currentlyBlocked || resource.permanentlyUnavailable) ? (
+        <article className="card resource-warning-banner">
+          <div>
+            <p className="eyebrow">Availability notice</p>
+            <h2>{resource.permanentlyUnavailable ? "This resource is permanently unavailable" : "This resource is currently in a blocked window"}</h2>
+            <p className="page-subtitle">
+              {resource.permanentlyUnavailable
+                ? "New bookings should not be made until staff restore the permanent status."
+                : resource.currentBlockReason || "A scheduled maintenance window is active right now."}
+            </p>
+          </div>
+        </article>
+      ) : null}
+
       <div className="resource-detail-layout">
         <article className="card resource-detail-card">
           <div className="resource-detail-title-row">
@@ -138,9 +156,15 @@ function ResourceDetailsPage() {
             </div>
             <div>
               <dt>
-                <FiShield /> Status
+                <FiShield /> Current status
               </dt>
               <dd>{formatLabel(resource.status)}</dd>
+            </div>
+            <div>
+              <dt>
+                <FiShield /> Permanent status
+              </dt>
+              <dd>{formatLabel(resource.baseStatus)}</dd>
             </div>
             <div>
               <dt>
@@ -175,25 +199,39 @@ function ResourceDetailsPage() {
               {getResourceDescriptionText(resource.description)}
             </p>
           </div>
+
+          <ResourceBlockList
+            blocks={resource.scheduledBlocks || []}
+            emptyMessage="No current or future out-of-service windows are scheduled for this resource."
+            subtitle="These windows are visible to users so they can avoid unavailable periods before submitting a booking."
+          />
         </article>
 
         <aside className="resource-detail-aside">
           <article className="card resource-aside-note">
             <p className="eyebrow">Booking Status</p>
-            <h2>{isActive ? "Ready for reservations" : "Temporarily unavailable"}</h2>
+            <h2>
+              {resource.permanentlyUnavailable
+                ? "Not bookable until restored"
+                : resource.currentlyBlocked
+                  ? "Temporarily unavailable right now"
+                  : "Ready for reservations"}
+            </h2>
             <p className="page-subtitle">
-              {isActive
-                ? "This resource is marked active and can be selected during the booking flow."
-                : "This resource is currently out of service, so new bookings should be avoided until it is reactivated."}
+              {resource.permanentlyUnavailable
+                ? "The permanent resource status is out of service, so new reservations should not be created."
+                : resource.currentlyBlocked
+                  ? resource.currentBlockReason || "A scheduled maintenance window is active right now."
+                  : "The permanent status is active. Users can still book future slots, and any scheduled block windows will be enforced during validation."}
             </p>
             <div className="resource-form-actions">
               <Link
                 to={`/bookings/new?resourceId=${resource.id}`}
-                className={`btn ${isActive ? "" : "resource-card-disabled"}`}
-                aria-disabled={!isActive}
-                tabIndex={isActive ? 0 : -1}
+                className={`btn ${bookingDisabled ? "resource-card-disabled" : ""}`}
+                aria-disabled={bookingDisabled}
+                tabIndex={bookingDisabled ? -1 : 0}
               >
-                Book this resource
+                {bookingDisabled ? "Unavailable for booking" : "Book this resource"}
               </Link>
               <Link to="/resources" className="btn btn-secondary">
                 Browse more
@@ -215,7 +253,7 @@ function ResourceDetailsPage() {
               </li>
               <li>
                 <FiClock />
-                The availability window shows when the resource is typically operational.
+                Scheduled out-of-service windows are checked against booking times automatically.
               </li>
             </ul>
           </article>
