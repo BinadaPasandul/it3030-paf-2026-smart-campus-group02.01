@@ -27,9 +27,18 @@ function ResourceCard({ resource }) {
           <strong>Available:</strong> {resource.availableFrom} - {resource.availableTo}
         </p>
 
-        <Link to={`/resources/${resource.id}`} className="btn btn-primary btn-sm">
-          View Details
-        </Link>
+        <div className="d-flex gap-2">
+          <Link to={`/resources/${resource.id}`} className="btn btn-outline-primary btn-sm flex-grow-1">
+            View Details
+          </Link>
+          <Link 
+            to={`/bookings/new?resourceId=${resource.id}`} 
+            className={`btn btn-primary btn-sm flex-grow-1 ${resource.status !== "ACTIVE" ? "disabled" : ""}`}
+            style={resource.status !== "ACTIVE" ? { pointerEvents: "none", opacity: 0.6 } : {}}
+          >
+            Book Now
+          </Link>
+        </div>
       </div>
     </div>
   );
