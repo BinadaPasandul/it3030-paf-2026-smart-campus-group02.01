@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { FiCalendar, FiShieldOff, FiX } from "react-icons/fi";
 import ResourceBlockList from "./ResourceBlockList";
 import { formatLabel } from "../resourceUi";
@@ -23,10 +23,6 @@ function ResourceBlockFormModal({
   onDelete,
 }) {
   const [formData, setFormData] = useState(initialFormState);
-
-  useEffect(() => {
-    setFormData(initialFormState);
-  }, [resource?.id]);
 
   if (!resource) {
     return null;

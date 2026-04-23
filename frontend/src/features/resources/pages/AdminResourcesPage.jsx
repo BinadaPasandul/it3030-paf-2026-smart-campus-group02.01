@@ -527,6 +527,7 @@ function AdminResourcesPage() {
 
       {resourceForBlocking ? (
         <ResourceBlockFormModal
+          key={resourceForBlocking.id}
           resource={resourceForBlocking}
           blocks={resourceBlocks}
           loadingBlocks={loadingBlocks}
