@@ -7,6 +7,7 @@ function MyBookingsPage() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [filterStatus, setFilterStatus] = useState("ALL");
 
   const fetchBookings = async () => {
     try {
@@ -30,12 +31,17 @@ function MyBookingsPage() {
     
     try {
       await bookingService.cancelBooking(bookingId);
-      // Refresh the list immediately after success
       fetchBookings();
     } catch (err) {
       alert("Failed to cancel the booking. It may have already started or been rejected.");
     }
   };
+
+  const filteredBookings = bookings.filter((b) => 
+    filterStatus === "ALL" ? true : b.status === filterStatus
+  );
+
+  const statuses = ["ALL", "PENDING", "APPROVED", "REJECTED", "CANCELLED"];
 
   return (
     <div className="page-stack">
@@ -45,10 +51,23 @@ function MyBookingsPage() {
           <p className="page-subtitle">Track and manage your resource reservations.</p>
         </div>
         <div className="actions-row">
-          <Link to="/bookings/new" className="btn">
-            Create New Booking
+          <Link to="/resources" className="btn">
+            Book Resource
           </Link>
         </div>
+      </div>
+
+      <div className="filter-bar mb-4" style={{ display: "flex", gap: "8px", overflowX: "auto", paddingBottom: "8px" }}>
+        {statuses.map((status) => (
+          <button
+            key={status}
+            onClick={() => setFilterStatus(status)}
+            className={`btn btn-sm ${filterStatus === status ? "btn-primary" : "btn-outline-secondary"}`}
+            style={{ textTransform: "capitalize" }}
+          >
+            {status.toLowerCase()}
+          </button>
+        ))}
       </div>
 
       {error && (
@@ -61,19 +80,21 @@ function MyBookingsPage() {
         <div className="loading-card card">
           Loading your bookings...
         </div>
-      ) : bookings.length === 0 ? (
+      ) : filteredBookings.length === 0 ? (
         <div className="empty-state card" style={{ padding: "48px 24px" }}>
-          <h3>No bookings found</h3>
+          <h3>No {filterStatus !== "ALL" ? filterStatus.toLowerCase() : ""} bookings found</h3>
           <p className="helper-text" style={{ marginBottom: "20px", marginTop: "8px" }}>
-            You haven't made any resource reservations yet.
+            {filterStatus === "ALL" 
+              ? "You haven't made any resource reservations yet." 
+              : `You don't have any bookings with status ${filterStatus.toLowerCase()}.`}
           </p>
-          <Link to="/bookings/new" className="btn btn-secondary">
-            Make a Booking
+          <Link to="/resources" className="btn btn-secondary">
+            Book Resource
           </Link>
         </div>
       ) : (
         <div className="dashboard-grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))" }}>
-          {bookings.map((booking) => (
+          {filteredBookings.map((booking) => (
             <BookingCard 
               key={booking.id} 
               booking={booking} 

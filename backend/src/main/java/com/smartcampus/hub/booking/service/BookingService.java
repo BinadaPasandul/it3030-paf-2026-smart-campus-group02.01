@@ -19,6 +19,7 @@ import org.springframework.security.access.AccessDeniedException;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -179,7 +180,15 @@ public class BookingService {
     private void checkConflicts(Long resourceId, LocalDate date, LocalTime startTime, LocalTime endTime, Long excludeId) {
         List<Booking> conflicts = bookingRepository.findConflictingBookings(resourceId, date, startTime, endTime, excludeId);
         if (!conflicts.isEmpty()) {
-            throw new BookingConflictException("The resource is already booked during this time range.");
+            Booking conflict = conflicts.get(0);
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
+            String message = String.format(
+                "The resource is already booked on %s from %s to %s.",
+                conflict.getBookingDate(),
+                conflict.getStartTime().format(formatter),
+                conflict.getEndTime().format(formatter)
+            );
+            throw new BookingConflictException(message);
         }
     }
 
