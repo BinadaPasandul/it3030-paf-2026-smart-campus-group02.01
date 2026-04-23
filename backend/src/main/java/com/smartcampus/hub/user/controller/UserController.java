@@ -41,6 +41,12 @@ public class UserController {
         return userService.getAllUsers();
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/technicians")
+    public List<UserResponse> getActiveTechnicians() {
+        return userService.getActiveTechnicians();
+    }
+
     @GetMapping("/me")
     public CurrentUserResponse currentUser(Authentication authentication) {
         return authService.getCurrentUser(authentication);

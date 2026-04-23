@@ -1,5 +1,6 @@
 package com.smartcampus.hub.user.repository;
 
+import com.smartcampus.hub.user.entity.Role;
 import com.smartcampus.hub.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -13,4 +14,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByEmail(String email);
     /** Used by the notification broadcast to send alerts to all active users. */
     List<User> findByActiveTrue();
+    List<User> findByRoleAndActiveTrueOrderByFullNameAsc(Role role);
 }

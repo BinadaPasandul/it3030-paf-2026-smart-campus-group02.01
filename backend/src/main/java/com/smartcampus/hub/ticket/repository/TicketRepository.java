@@ -39,7 +39,7 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             "createdBy",
             "assignedTo"
     })
-    List<Ticket> findByAssignedToId(Long userId);
+    List<Ticket> findByAssignedToIdOrderByUpdatedAtDesc(Long userId);
 
     List<Ticket> findByStatus(TicketStatus status);
 }

@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -41,6 +42,7 @@ public class TicketController {
         return ResponseEntity.status(HttpStatus.CREATED).body(TicketMapper.toResponse(createdTicket));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<List<TicketResponse>> getAllTickets() {
         List<TicketResponse> responses = ticketService.getAllTickets().stream()
@@ -59,20 +61,37 @@ public class TicketController {
         return ResponseEntity.ok(responses);
     }
 
+    @PreAuthorize("hasRole('TECHNICIAN')")
+    @GetMapping("/assigned")
+    public ResponseEntity<List<TicketResponse>> getAssignedTickets(Authentication authentication) {
+        CurrentUserResponse currentUser = authService.getCurrentUser(authentication);
+
+        List<TicketResponse> responses = ticketService.getTicketsForTechnician(currentUser.getId()).stream()
+                .map(TicketMapper::toResponse)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(responses);
+    }
+
     @GetMapping("/{id}")
-    public ResponseEntity<TicketResponse> getTicketById(@PathVariable Long id) {
-        Ticket ticket = ticketService.getTicketById(id);
+    public ResponseEntity<TicketResponse> getTicketById(Authentication authentication,
+            @PathVariable Long id) {
+        CurrentUserResponse currentUser = authService.getCurrentUser(authentication);
+        Ticket ticket = ticketService.getTicketForUser(id, currentUser.getId(), currentUser.getRole());
         return ResponseEntity.ok(TicketMapper.toResponse(ticket));
     }
 
     @PostMapping("/{id}/attachments")
     public ResponseEntity<AttachmentResponse> uploadAttachment(
+            Authentication authentication,
             @PathVariable Long id,
             @RequestParam("file") MultipartFile file) {
+        CurrentUserResponse currentUser = authService.getCurrentUser(authentication);
+        ticketService.getTicketForUser(id, currentUser.getId(), currentUser.getRole());
         TicketAttachment attachment = attachmentService.uploadAttachment(id, file);
         return ResponseEntity.status(HttpStatus.CREATED).body(TicketMapper.toAttachmentResponse(attachment));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{id}/assign")
     public ResponseEntity<TicketResponse> assignTechnician(@PathVariable Long id,
             @Valid @RequestBody AssignmentRequest request) {

@@ -140,10 +140,10 @@ function AdminTicketManagementPage() {
       setError("");
       const [ticketResponse, userResponse] = await Promise.all([
         api.get("/tickets"),
-        api.get("/users"),
+        api.get("/users/technicians"),
       ]);
       setTickets(ticketResponse.data || []);
-      setTechnicians((userResponse.data || []).filter((user) => user.role === "TECHNICIAN" && user.active));
+      setTechnicians(userResponse.data || []);
     } catch (err) {
       setError(getApiErrorMessage(err, "Failed to load admin ticket workspace."));
     } finally {

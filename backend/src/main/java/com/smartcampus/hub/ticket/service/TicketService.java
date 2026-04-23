@@ -6,9 +6,11 @@ import com.smartcampus.hub.ticket.entity.Ticket;
 import com.smartcampus.hub.ticket.entity.TicketStatus;
 import com.smartcampus.hub.ticket.dto.StatusUpdateRequest;
 import com.smartcampus.hub.ticket.repository.TicketRepository;
+import com.smartcampus.hub.user.entity.Role;
 import com.smartcampus.hub.user.entity.User;
 import com.smartcampus.hub.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,9 +51,24 @@ public class TicketService {
     }
 
     @Transactional(readOnly = true)
+    public List<Ticket> getTicketsForTechnician(Long technicianId) {
+        return ticketRepository.findByAssignedToIdOrderByUpdatedAtDesc(technicianId);
+    }
+
+    @Transactional(readOnly = true)
     public Ticket getTicketById(Long id) {
         return ticketRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket not found with id: " + id));
+    }
+
+    @Transactional(readOnly = true)
+    public Ticket getTicketForUser(Long ticketId, Long userId, Role role) {
+        Ticket ticket = getTicketById(ticketId);
+        if (!canAccessTicket(ticket, userId, role)) {
+            throw new AccessDeniedException("You are not authorized to view this ticket.");
+        }
+
+        return ticket;
     }
 
     @Transactional
@@ -59,6 +76,14 @@ public class TicketService {
         Ticket ticket = getTicketById(ticketId);
         User technician = userRepository.findById(technicianId)
                 .orElseThrow(() -> new ResourceNotFoundException("Technician not found with id: " + technicianId));
+
+        if (technician.getRole() != Role.TECHNICIAN) {
+            throw new IllegalArgumentException("Selected user is not a technician.");
+        }
+
+        if (!technician.isActive()) {
+            throw new IllegalArgumentException("Selected technician account is inactive.");
+        }
 
         // Create or update technician assignment
         TechnicianAssignment assignment = ticket.getAssignment();
@@ -81,15 +106,17 @@ public class TicketService {
     }
 
     @Transactional
-    public Ticket updateStatus(Long ticketId, StatusUpdateRequest request, Long userId, com.smartcampus.hub.user.entity.Role userRole) {
+    public Ticket updateStatus(Long ticketId, StatusUpdateRequest request, Long userId, Role userRole) {
         Ticket ticket = getTicketById(ticketId);
         
         // Authorization Check: Only ADMIN or Assigned Technician
-        boolean isAdmin = userRole == com.smartcampus.hub.user.entity.Role.ADMIN;
-        boolean isAssignedTechnician = ticket.getAssignedTo() != null && ticket.getAssignedTo().getId().equals(userId);
+        boolean isAdmin = userRole == Role.ADMIN;
+        boolean isAssignedTechnician = userRole == Role.TECHNICIAN
+                && ticket.getAssignedTo() != null
+                && ticket.getAssignedTo().getId().equals(userId);
 
         if (!isAdmin && !isAssignedTechnician) {
-            throw new org.springframework.security.access.AccessDeniedException("You are not authorized to update this ticket's status.");
+            throw new AccessDeniedException("You are not authorized to update this ticket's status.");
         }
 
         TicketStatus currentStatus = ticket.getStatus();
@@ -112,10 +139,10 @@ public class TicketService {
         return ticketRepository.save(ticket);
     }
 
-    private void validateStatusTransition(TicketStatus current, TicketStatus next, com.smartcampus.hub.user.entity.Role role, StatusUpdateRequest request) {
+    private void validateStatusTransition(TicketStatus current, TicketStatus next, Role role, StatusUpdateRequest request) {
         // ADMIN can reject at any point except from terminal states
         if (next == TicketStatus.REJECTED) {
-            if (role != com.smartcampus.hub.user.entity.Role.ADMIN) {
+            if (role != Role.ADMIN) {
                 throw new IllegalArgumentException("Only administrators can reject tickets.");
             }
             if (request.getRejectionReason() == null || request.getRejectionReason().isBlank()) {
@@ -125,6 +152,11 @@ public class TicketService {
                 throw new IllegalArgumentException("Cannot reject a ticket that is already " + current);
             }
             return;
+        }
+
+        if (next == TicketStatus.RESOLVED
+                && (request.getResolutionNotes() == null || request.getResolutionNotes().isBlank())) {
+            throw new IllegalArgumentException("Resolution notes must be provided when resolving a ticket.");
         }
 
         boolean valid = false;
@@ -138,5 +170,18 @@ public class TicketService {
         if (!valid) {
             throw new IllegalArgumentException("Invalid status transition: " + current + " -> " + next);
         }
+    }
+
+    private boolean canAccessTicket(Ticket ticket, Long userId, Role role) {
+        if (role == Role.ADMIN) {
+            return true;
+        }
+
+        boolean isCreator = ticket.getCreatedBy() != null && ticket.getCreatedBy().getId().equals(userId);
+        boolean isAssignedTechnician = role == Role.TECHNICIAN
+                && ticket.getAssignedTo() != null
+                && ticket.getAssignedTo().getId().equals(userId);
+
+        return isCreator || isAssignedTechnician;
     }
 }

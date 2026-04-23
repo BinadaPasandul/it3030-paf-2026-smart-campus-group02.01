@@ -30,8 +30,8 @@ function TicketActionPanel({ ticket, onActionComplete }) {
 
     const loadTechnicians = async () => {
       try {
-        const response = await api.get("/users");
-        setTechnicians((response.data || []).filter((item) => item.role === "TECHNICIAN" && item.active));
+        const response = await api.get("/users/technicians");
+        setTechnicians(response.data || []);
       } catch (err) {
         setError(getApiErrorMessage(err, "Failed to load technicians."));
       }
