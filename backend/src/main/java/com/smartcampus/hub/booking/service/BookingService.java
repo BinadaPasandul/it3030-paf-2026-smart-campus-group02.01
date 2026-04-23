@@ -8,11 +8,15 @@ import com.smartcampus.hub.booking.entity.BookingStatus;
 import com.smartcampus.hub.booking.repository.BookingRepository;
 import com.smartcampus.hub.exception.BookingConflictException;
 import com.smartcampus.hub.exception.ResourceNotFoundException;
+import com.smartcampus.hub.notification.entity.NotificationType;
+import com.smartcampus.hub.notification.service.NotificationService;
 import com.smartcampus.hub.resource.entity.Resource;
 import com.smartcampus.hub.resource.entity.ResourceStatus;
 import com.smartcampus.hub.resource.repository.ResourceRepository;
 import com.smartcampus.hub.user.entity.User;
 import com.smartcampus.hub.user.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.access.AccessDeniedException;
@@ -30,11 +34,20 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final ResourceRepository resourceRepository;
     private final UserRepository userRepository;
+    // @Lazy prevents circular dependency: NotificationService -> UserRepository <- BookingService
+    private NotificationService notificationService;
 
-    public BookingService(BookingRepository bookingRepository, ResourceRepository resourceRepository, UserRepository userRepository) {
-        this.bookingRepository = bookingRepository;
+    public BookingService(BookingRepository bookingRepository,
+                          ResourceRepository resourceRepository,
+                          UserRepository userRepository) {
+        this.bookingRepository  = bookingRepository;
         this.resourceRepository = resourceRepository;
-        this.userRepository = userRepository;
+        this.userRepository     = userRepository;
+    }
+
+    @Autowired
+    public void setNotificationService(@Lazy NotificationService notificationService) {
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -76,6 +89,18 @@ public class BookingService {
         booking.setStatus(BookingStatus.PENDING);
 
         Booking savedBooking = bookingRepository.save(booking);
+
+        // Notify the user their booking request was received and is pending review
+        notificationService.sendNotification(
+                user.getId(),
+                "📋 Your booking request for \"" + resource.getName() + "\" on " + request.getBookingDate() +
+                " has been submitted and is awaiting admin approval.",
+                NotificationType.REMINDER_PENDING_BOOKING,
+                savedBooking.getId(),
+                "BOOKING"
+        );
+
+
         return mapToDTO(savedBooking);
     }
 
@@ -135,7 +160,37 @@ public class BookingService {
         booking.setAdminReason(reviewDTO.getReason());
         booking.setReviewedBy(admin);
 
-        return mapToDTO(bookingRepository.save(booking));
+        Booking savedBooking = bookingRepository.save(booking);
+
+        // Notify the booking owner of the admin decision
+        Long ownerId    = savedBooking.getUser().getId();
+        String resource = savedBooking.getResource().getName();
+        String date     = savedBooking.getBookingDate().toString();
+
+        if (reviewDTO.getStatus() == BookingStatus.APPROVED) {
+            notificationService.sendNotificationWithPriority(
+                    ownerId,
+                    "✅ Your booking for \"" + resource + "\" on " + date + " has been APPROVED.",
+                    NotificationType.BOOKING_APPROVED,
+                    savedBooking.getId(),
+                    "BOOKING",
+                    "HIGH"
+            );
+        } else if (reviewDTO.getStatus() == BookingStatus.REJECTED) {
+            String reason = (reviewDTO.getReason() != null && !reviewDTO.getReason().isBlank())
+                    ? " Reason: " + reviewDTO.getReason()
+                    : "";
+            notificationService.sendNotificationWithPriority(
+                    ownerId,
+                    "❌ Your booking for \"" + resource + "\" on " + date + " has been REJECTED." + reason,
+                    NotificationType.BOOKING_REJECTED,
+                    savedBooking.getId(),
+                    "BOOKING",
+                    "HIGH"
+            );
+        }
+
+        return mapToDTO(savedBooking);
     }
 
     @Transactional
@@ -155,7 +210,18 @@ public class BookingService {
         }
 
         booking.setStatus(BookingStatus.CANCELLED);
-        return mapToDTO(bookingRepository.save(booking));
+        Booking saved = bookingRepository.save(booking);
+
+        notificationService.sendNotification(
+                user.getId(),
+                "🚫 Your booking for \"" + saved.getResource().getName() + "\" on " + saved.getBookingDate() +
+                " has been cancelled.",
+                NotificationType.BOOKING_CANCELLED,
+                saved.getId(),
+                "BOOKING"
+        );
+
+        return mapToDTO(saved);
     }
 
     @Transactional
