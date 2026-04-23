@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
 import { getApiErrorMessage } from "../../../api/getApiErrorMessage";
 import { useAuth } from "../../auth/context/useAuth";
 
 function AdminDashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [roleDrafts, setRoleDrafts] = useState({});
   const [loading, setLoading] = useState(true);

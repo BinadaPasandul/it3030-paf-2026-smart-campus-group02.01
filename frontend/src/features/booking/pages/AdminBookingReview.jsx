@@ -15,6 +15,7 @@ function AdminBookingReview() {
       setBookings(data);
       setError(null);
     } catch (err) {
+      console.error(err);
       setError("Failed to load bookings database.");
     } finally {
       setLoading(false);
@@ -23,6 +24,7 @@ function AdminBookingReview() {
 
   useEffect(() => {
     fetchBookings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
   const handleReview = async (bookingId, newStatus) => {

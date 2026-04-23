@@ -34,6 +34,7 @@ function ResourceListPage() {
       const data = await getAllResources(params);
       setResources(data);
     } catch (err) {
+      console.error(err);
       setError("Failed to load resources.");
     } finally {
       setLoading(false);
@@ -42,6 +43,7 @@ function ResourceListPage() {
 
   useEffect(() => {
     fetchResources();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSearch = () => {

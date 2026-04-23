@@ -16,6 +16,7 @@ function ResourceDetailsPage() {
         const data = await getResourceById(id);
         setResource(data);
       } catch (err) {
+        console.error(err);
         setError("Failed to load resource details.");
       } finally {
         setLoading(false);
