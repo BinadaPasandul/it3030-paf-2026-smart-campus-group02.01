@@ -170,8 +170,8 @@ public class BookingService {
             throw new AccessDeniedException("Not authorized to delete this booking");
         }
 
-        if (booking.getStatus() != BookingStatus.PENDING) {
-            throw new IllegalStateException("Only PENDING bookings can be deleted");
+        if (booking.getStatus() != BookingStatus.REJECTED && booking.getStatus() != BookingStatus.CANCELLED) {
+            throw new IllegalStateException("Only REJECTED or CANCELLED bookings can be deleted");
         }
 
         bookingRepository.delete(booking);

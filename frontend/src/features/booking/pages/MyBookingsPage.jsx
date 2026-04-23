@@ -41,6 +41,18 @@ function MyBookingsPage() {
     }
   };
 
+  const handleDelete = async (bookingId) => {
+    if (!window.confirm("Remove this rejected or cancelled booking permanently?")) return;
+
+    try {
+      await bookingService.deleteBooking(bookingId);
+      setBookings((currentBookings) => currentBookings.filter((booking) => booking.id !== bookingId));
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || "Failed to remove the booking.");
+    }
+  };
+
   const filteredBookings = bookings.filter((booking) =>
     filterStatus === "ALL" ? true : booking.status === filterStatus,
   );
@@ -166,6 +178,7 @@ function MyBookingsPage() {
                 key={booking.id}
                 booking={booking}
                 onCancel={handleCancel}
+                onDelete={handleDelete}
                 isAdmin={false}
               />
             ))}

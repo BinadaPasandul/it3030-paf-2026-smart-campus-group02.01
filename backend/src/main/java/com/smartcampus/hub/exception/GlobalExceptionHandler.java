@@ -36,6 +36,17 @@ public class GlobalExceptionHandler {
         return error;
     }
 
+    @ExceptionHandler(ResourceInUseException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public Map<String, Object> handleResourceInUse(ResourceInUseException ex) {
+        Map<String, Object> error = new HashMap<>();
+        error.put("timestamp", LocalDateTime.now());
+        error.put("status", 409);
+        error.put("error", "Conflict");
+        error.put("message", ex.getMessage());
+        return error;
+    }
+
     @ExceptionHandler(AuthenticationException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public Map<String, Object> handleAuthentication(AuthenticationException ex) {

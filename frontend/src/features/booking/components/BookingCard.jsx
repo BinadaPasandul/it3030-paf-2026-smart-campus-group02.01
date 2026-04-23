@@ -1,6 +1,6 @@
 import React from "react";
 
-const BookingCard = ({ booking, onCancel, isAdmin, onReview }) => {
+const BookingCard = ({ booking, onCancel, onDelete, isAdmin, onReview }) => {
   const getStatusBadgeClass = (status) => {
     switch (status) {
       case "APPROVED":
@@ -58,6 +58,12 @@ const BookingCard = ({ booking, onCancel, isAdmin, onReview }) => {
         {!isAdmin && (booking.status === "PENDING" || booking.status === "APPROVED") ? (
           <button className="btn btn-secondary" onClick={() => onCancel(booking.id)}>
             Cancel reservation
+          </button>
+        ) : null}
+
+        {!isAdmin && (booking.status === "REJECTED" || booking.status === "CANCELLED") ? (
+          <button className="btn btn-danger" onClick={() => onDelete(booking.id)}>
+            Remove booking
           </button>
         ) : null}
 
