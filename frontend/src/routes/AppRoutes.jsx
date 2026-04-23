@@ -9,6 +9,9 @@ import ProfilePage from "../features/auth/pages/ProfilePage";
 import AdminDashboard from "../features/admin/pages/AdminDashboard";
 import UnauthorizedPage from "../pages/UnauthorizedPage";
 import NotFoundPage from "../pages/NotFoundPage";
+import CreateBookingPage from "../features/booking/pages/CreateBookingPage";
+import MyBookingsPage from "../features/booking/pages/MyBookingsPage";
+import AdminBookingReview from "../features/booking/pages/AdminBookingReview";
 import ResourceListPage from "../features/resources/pages/ResourceListPage";
 import ResourceDetailsPage from "../features/resources/pages/ResourceDetailsPage";
 import AdminResourcesPage from "../features/resources/pages/AdminResourcesPage";
@@ -42,10 +45,37 @@ function AppRoutes() {
         />
 
         <Route
+          path="/bookings/new"
+          element={
+            <ProtectedRoute>
+              <CreateBookingPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/bookings/my"
+          element={
+            <ProtectedRoute>
+              <MyBookingsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="/admin"
           element={
             <ProtectedRoute adminOnly={true}>
               <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/bookings"
+          element={
+            <ProtectedRoute adminOnly={true}>
+              <AdminBookingReview />
             </ProtectedRoute>
           }
         />

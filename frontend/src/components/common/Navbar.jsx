@@ -47,6 +47,12 @@ function Navbar() {
             </NavLink>
           )}
 
+          {isAuthenticated && user?.profileCompleted && (
+            <NavLink className={({ isActive }) => (isActive ? "active" : undefined)} to="/bookings/my">
+              My Bookings
+            </NavLink>
+          )}
+
           {isAdmin && user?.profileCompleted && (
             <NavLink className={({ isActive }) => (isActive ? "active" : undefined)} to="/admin">
               Admin
@@ -56,6 +62,12 @@ function Navbar() {
           {isAdmin && user?.profileCompleted && (
             <NavLink className={({ isActive }) => (isActive ? "active" : undefined)} to="/admin/resources">
               Manage Resources
+            </NavLink>
+          )}
+
+          {isAdmin && user?.profileCompleted && (
+            <NavLink className={({ isActive }) => (isActive ? "active" : undefined)} to="/admin/bookings">
+              Review Bookings
             </NavLink>
           )}
 
