@@ -15,6 +15,10 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  sql:
+    init:
+      mode: always
+
   security:
     oauth2:
       client:
@@ -34,7 +38,14 @@ spring:
 server:
   port: 8080
 
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
+
 app:
+  upload:
+    dir: uploads
   seed-admin:
     enabled: ${SEED_ADMIN_ENABLED:true}
     full-name: ${SEED_ADMIN_FULL_NAME:System Administrator}
