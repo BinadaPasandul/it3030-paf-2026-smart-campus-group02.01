@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { bookingService } from "../api/bookingService";
 import { getAllResources } from "../../../api/resourceApi";
 
 function CreateBookingPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const preSelectedResourceId = searchParams.get("resourceId");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
@@ -28,12 +30,16 @@ function CreateBookingPage() {
         const data = await getAllResources();
         setResources(data);
         
-        // Find the first active resource to set as default
-        const firstActive = data.find(r => r.status === "ACTIVE");
-        if (firstActive) {
-          setFormData(prev => ({ ...prev, resourceId: firstActive.id.toString() }));
-        } else if (data.length > 0) {
-          setFormData(prev => ({ ...prev, resourceId: data[0].id.toString() }));
+        // Handle pre-selection from URL or default to first active
+        if (preSelectedResourceId) {
+          setFormData(prev => ({ ...prev, resourceId: preSelectedResourceId }));
+        } else {
+          const firstActive = data.find(r => r.status === "ACTIVE");
+          if (firstActive) {
+            setFormData(prev => ({ ...prev, resourceId: firstActive.id.toString() }));
+          } else if (data.length > 0) {
+            setFormData(prev => ({ ...prev, resourceId: data[0].id.toString() }));
+          }
         }
       } catch (err) {
         console.error("Failed to fetch resources:", err);
