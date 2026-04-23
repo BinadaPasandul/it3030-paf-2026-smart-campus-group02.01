@@ -11,6 +11,20 @@ import java.util.stream.Collectors;
  */
 public class TicketMapper {
 
+    public static Ticket toEntity(TicketRequest request) {
+        if (request == null)
+            return null;
+
+        return Ticket.builder()
+                .title(request.getTitle())
+                .description(request.getDescription())
+                .category(request.getCategory())
+                .priority(request.getPriority())
+                .location(request.getLocation())
+                .contactDetails(request.getContactDetails())
+                .build();
+    }
+
     public static TicketResponse toResponse(Ticket ticket) {
         if (ticket == null)
             return null;
@@ -20,6 +34,12 @@ public class TicketMapper {
                 .title(ticket.getTitle())
                 .description(ticket.getDescription())
                 .status(ticket.getStatus())
+                .category(ticket.getCategory())
+                .priority(ticket.getPriority())
+                .location(ticket.getLocation())
+                .contactDetails(ticket.getContactDetails())
+                .resolutionNotes(ticket.getResolutionNotes())
+                .rejectionReason(ticket.getRejectionReason())
                 .createdById(ticket.getCreatedBy() != null ? ticket.getCreatedBy().getId() : null)
                 .createdByName(ticket.getCreatedBy() != null ? ticket.getCreatedBy().getFullName()
                         : null)

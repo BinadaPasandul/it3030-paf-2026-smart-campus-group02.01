@@ -164,7 +164,7 @@ function CommentSection({ ticketId, comments, onCommentAdded }) {
                       </div>
                     </div>
                   ) : (
-                    <div className="info-panel" style={{ padding: "10px 14px", border: "none", background: "#f8fafc" }}>
+                    <div className="info-panel" style={{ padding: "10px 14px", border: "none" }}>
                       <p style={{ fontSize: "0.95rem", whiteSpace: "pre-wrap" }}>{comment.content}</p>
                     </div>
                   )}

@@ -6,7 +6,9 @@ import { getApiErrorMessage } from "../../../api/getApiErrorMessage";
 import TicketDetailsView from "../components/TicketDetailsView";
 import TicketGallery from "../components/TicketGallery";
 import TicketAttachmentUpload from "../components/TicketAttachmentUpload";
+import TicketActionPanel from "../components/TicketActionPanel";
 import CommentSection from "../components/CommentSection";
+import TicketSlaTimer from "../components/TicketSlaTimer";
 
 /**
  * TicketDetailsPage - Orchestrates the full ticket interaction experience.
@@ -38,9 +40,12 @@ function TicketDetailsPage() {
   if (loading) {
     return (
       <div className="container page">
-        <div className="card loading-card">
-          <p className="page-subtitle">Loading ticket details...</p>
-        </div>
+        <article className="card loading-card ticket-panel">
+          <div className="ticket-loading-state">
+            <span className="ticket-spinner" aria-hidden="true" />
+            <p className="page-subtitle">Loading ticket details...</p>
+          </div>
+        </article>
       </div>
     );
   }
@@ -64,56 +69,56 @@ function TicketDetailsPage() {
 
   return (
     <div className="container page">
-      <div className="dashboard-stack">
-        <section className="page-header">
+      <div className="dashboard-stack ticket-hub-shell">
+        <section className="ticket-detail-topbar">
           <div>
-            <button 
-              className="btn btn-ghost btn-sm" 
-              style={{ marginBottom: "1rem" }}
+            <button
+              className="btn btn-ghost btn-sm"
               onClick={() => navigate("/tickets")}
             >
-              &larr; Back to Dashboard
+              Back to Ticket Hub
             </button>
           </div>
         </section>
 
-        <div className="auth-grid" style={{ gridTemplateColumns: "2fr 1fr", alignItems: "start" }}>
-          
-          {/* Main Content Area */}
+        <div className="ticket-detail-layout">
           <div className="dashboard-stack">
             <TicketDetailsView ticket={ticket} />
+            <TicketSlaTimer ticket={ticket} />
             <TicketGallery attachments={ticket.attachments} />
-            
-            {/* Comments Area */}
-            <CommentSection 
-              ticketId={ticket.id} 
-              comments={ticket.comments} 
-              onCommentAdded={loadTicketData} 
+
+            <CommentSection
+              ticketId={ticket.id}
+              comments={ticket.comments}
+              onCommentAdded={loadTicketData}
             />
           </div>
 
-          {/* Sidebar Area */}
           <aside className="dashboard-stack">
-            <TicketAttachmentUpload 
-              ticketId={ticket.id} 
-              onUploadComplete={loadTicketData} 
+            <TicketActionPanel
+              ticket={ticket}
+              onActionComplete={loadTicketData}
             />
-            
-            <article className="card info-panel shadow-sm">
+
+            <TicketAttachmentUpload
+              ticketId={ticket.id}
+              onUploadComplete={loadTicketData}
+            />
+
+            <article className="card ticket-side-note">
               <p className="eyebrow">Quick Information</p>
               <div className="detail-list" style={{ marginTop: "1rem" }}>
                 <div>
-                  <dt>Department</dt>
-                  <dd>Operations</dd>
+                  <dt>Ticket Type</dt>
+                  <dd>{ticket.category || "General Support"}</dd>
                 </div>
                 <div>
-                  <dt>Category</dt>
-                  <dd>Maintenance</dd>
+                  <dt>Current Priority</dt>
+                  <dd>{ticket.priority || "MEDIUM"}</dd>
                 </div>
               </div>
             </article>
           </aside>
-
         </div>
       </div>
     </div>

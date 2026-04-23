@@ -1,13 +1,23 @@
+import TicketStatusStepper from "./TicketStatusStepper";
+
 /**
  * TicketDetailsView - Renders the primary information for a ticket
  */
 function TicketDetailsView({ ticket }) {
   const getStatusClass = (status) => {
     switch (status) {
-      case "OPEN": return "status-open";
-      case "IN_PROGRESS": return "status-progress";
-      case "RESOLVED": return "status-resolved";
-      default: return "status-inactive";
+      case "OPEN":
+        return "status-open";
+      case "IN_PROGRESS":
+        return "status-progress";
+      case "RESOLVED":
+        return "status-resolved";
+      case "REJECTED":
+        return "status-rejected";
+      case "CLOSED":
+        return "status-closed";
+      default:
+        return "status-inactive";
     }
   };
 
@@ -20,22 +30,45 @@ function TicketDetailsView({ ticket }) {
   };
 
   return (
-    <article className="card">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", marginBottom: "1.5rem" }}>
+    <article className="card ticket-details-card">
+      <div className="ticket-details-header">
         <div>
           <p className="eyebrow" style={{ marginBottom: "0.25rem" }}>Ticket #{ticket.id}</p>
-          <h1 style={{ fontSize: "1.75rem" }}>{ticket.title}</h1>
+          <h1>{ticket.title}</h1>
         </div>
         <span className={`status-badge ${getStatusClass(ticket.status)}`}>
           {ticket.status.replace("_", " ")}
         </span>
       </div>
 
-      <div className="info-panel" style={{ marginBottom: "1.5rem" }}>
+      <TicketStatusStepper currentStatus={ticket.status} />
+
+      <div className="ticket-description-panel">
         <p style={{ whiteSpace: "pre-wrap", color: "var(--text)" }}>{ticket.description}</p>
       </div>
 
-      <div className="dashboard-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
+      <div className="ticket-details-grid">
+        <div>
+          <p className="eyebrow">Category</p>
+          <p style={{ fontWeight: 600 }}>{ticket.category || "N/A"}</p>
+        </div>
+        <div>
+          <p className="eyebrow">Priority</p>
+          <p style={{ fontWeight: 600, color: ticket.priority === "HIGH" ? "var(--error)" : "inherit" }}>
+            {ticket.priority}
+          </p>
+        </div>
+        <div>
+          <p className="eyebrow">Location</p>
+          <p style={{ fontWeight: 600 }}>{ticket.location || "N/A"}</p>
+        </div>
+        <div>
+          <p className="eyebrow">Contact Info</p>
+          <p style={{ fontWeight: 600 }}>{ticket.contactDetails || "None provided"}</p>
+        </div>
+      </div>
+
+      <div className="ticket-details-grid ticket-details-grid-secondary">
         <div>
           <p className="eyebrow">Reported By</p>
           <p style={{ fontWeight: 600 }}>{ticket.createdByName || "Anonymous"}</p>
@@ -53,6 +86,20 @@ function TicketDetailsView({ ticket }) {
           <p style={{ fontWeight: 600 }}>{formatDate(ticket.updatedAt)}</p>
         </div>
       </div>
+
+      {ticket.resolutionNotes && (
+        <div className="ticket-note-panel ticket-note-success">
+          <p className="eyebrow" style={{ color: "var(--success)" }}>Resolution Notes</p>
+          <p style={{ marginTop: "0.5rem" }}>{ticket.resolutionNotes}</p>
+        </div>
+      )}
+
+      {ticket.rejectionReason && (
+        <div className="ticket-note-panel ticket-note-danger">
+          <p className="eyebrow" style={{ color: "var(--error)" }}>Rejection Reason</p>
+          <p style={{ marginTop: "0.5rem" }}>{ticket.rejectionReason}</p>
+        </div>
+      )}
     </article>
   );
 }

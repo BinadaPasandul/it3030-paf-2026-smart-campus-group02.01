@@ -1,5 +1,6 @@
 package com.smartcampus.hub.ticket.dto;
 
+import com.smartcampus.hub.ticket.entity.TicketPriority;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
@@ -16,4 +17,15 @@ public class TicketRequest {
 
     @NotBlank(message = "Description is required")
     private String description;
+
+    @NotBlank(message = "Category is required")
+    private String category;
+
+    @Builder.Default
+    private TicketPriority priority = TicketPriority.MEDIUM;
+
+    @NotBlank(message = "Location is required")
+    private String location;
+
+    private String contactDetails;
 }

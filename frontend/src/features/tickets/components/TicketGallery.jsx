@@ -6,8 +6,14 @@ function TicketGallery({ attachments }) {
     return null;
   }
 
-  // Base URL for uploads from backend
-  const UPLOAD_BASE_URL = "http://localhost:8080/uploads/";
+  const getAttachmentUrl = (filePath) => {
+    if (!filePath) return "";
+    if (filePath.startsWith("http://") || filePath.startsWith("https://")) {
+      return filePath;
+    }
+
+    return `http://localhost:8080${filePath.startsWith("/") ? filePath : `/${filePath}`}`;
+  };
 
   return (
     <section className="card" style={{ marginTop: "1rem" }}>
@@ -24,7 +30,7 @@ function TicketGallery({ attachments }) {
         {attachments.map((file) => (
           <a 
             key={file.id} 
-            href={`${UPLOAD_BASE_URL}${file.filePath}`} 
+            href={getAttachmentUrl(file.filePath)}
             target="_blank" 
             rel="noopener noreferrer"
             style={{ 
@@ -37,14 +43,14 @@ function TicketGallery({ attachments }) {
             onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
           >
             <img 
-              src={`${UPLOAD_BASE_URL}${file.filePath}`} 
+              src={getAttachmentUrl(file.filePath)}
               alt={file.fileName} 
               style={{ width: "100%", height: "120px", objectFit: "cover" }} 
               onError={(e) => {
                 e.target.src = "https://placehold.co/150x120?text=No+Preview";
               }}
             />
-            <div style={{ padding: "8px", background: "#f8fafc" }}>
+            <div style={{ padding: "8px", background: "rgba(15, 23, 42, 0.92)" }}>
               <p className="eyebrow" style={{ fontSize: "0.65rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {file.fileName}
               </p>

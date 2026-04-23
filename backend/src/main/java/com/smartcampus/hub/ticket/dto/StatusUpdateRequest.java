@@ -13,4 +13,7 @@ import lombok.*;
 public class StatusUpdateRequest {
     @NotNull(message = "Status is required")
     private TicketStatus status;
+
+    private String resolutionNotes;
+    private String rejectionReason;
 }

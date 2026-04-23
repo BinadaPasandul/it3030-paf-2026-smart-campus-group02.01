@@ -39,6 +39,25 @@ public class Ticket {
     @Builder.Default
     private TicketStatus status = TicketStatus.OPEN;
 
+    @Column(nullable = false)
+    private String category;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private TicketPriority priority = TicketPriority.MEDIUM;
+
+    @Column(nullable = false)
+    private String location;
+
+    private String contactDetails;
+
+    @Column(columnDefinition = "TEXT")
+    private String resolutionNotes;
+
+    @Column(columnDefinition = "TEXT")
+    private String rejectionReason;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

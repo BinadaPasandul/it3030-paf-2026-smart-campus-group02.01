@@ -35,10 +35,7 @@ public class TicketController {
             @Valid @RequestBody TicketRequest request) {
         CurrentUserResponse currentUser = authService.getCurrentUser(authentication);
 
-        Ticket ticket = Ticket.builder()
-                .title(request.getTitle())
-                .description(request.getDescription())
-                .build();
+        Ticket ticket = TicketMapper.toEntity(request);
 
         Ticket createdTicket = ticketService.createTicket(ticket, currentUser.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(TicketMapper.toResponse(createdTicket));
@@ -47,6 +44,16 @@ public class TicketController {
     @GetMapping
     public ResponseEntity<List<TicketResponse>> getAllTickets() {
         List<TicketResponse> responses = ticketService.getAllTickets().stream()
+                .map(TicketMapper::toResponse)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(responses);
+    }
+
+    @GetMapping("/mine")
+    public ResponseEntity<List<TicketResponse>> getMyTickets(Authentication authentication) {
+        CurrentUserResponse currentUser = authService.getCurrentUser(authentication);
+
+        List<TicketResponse> responses = ticketService.getTicketsForCreator(currentUser.getId()).stream()
                 .map(TicketMapper::toResponse)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(responses);
@@ -74,9 +81,11 @@ public class TicketController {
     }
 
     @PatchMapping("/{id}/status")
-    public ResponseEntity<TicketResponse> updateStatus(@PathVariable Long id,
+    public ResponseEntity<TicketResponse> updateStatus(Authentication authentication,
+            @PathVariable Long id,
             @Valid @RequestBody StatusUpdateRequest request) {
-        Ticket updatedTicket = ticketService.updateStatus(id, request.getStatus());
+        CurrentUserResponse currentUser = authService.getCurrentUser(authentication);
+        Ticket updatedTicket = ticketService.updateStatus(id, request, currentUser.getId(), currentUser.getRole());
         return ResponseEntity.ok(TicketMapper.toResponse(updatedTicket));
     }
 }

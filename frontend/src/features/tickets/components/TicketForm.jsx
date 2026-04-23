@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../../api/axios";
 import { getApiErrorMessage } from "../../../api/getApiErrorMessage";
@@ -7,11 +7,14 @@ import { getApiErrorMessage } from "../../../api/getApiErrorMessage";
  * TicketForm - Enhanced component for reporting a new incident ticket.
  * Supports multiple file uploads and image previews.
  */
-function TicketForm() {
+function TicketForm({ onCreated, onCancelPath = "/tickets" }) {
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("Maintenance");
   const [priority, setPriority] = useState("MEDIUM");
+  const [location, setLocation] = useState("");
+  const [contactDetails, setContactDetails] = useState("");
   const [initialComment, setInitialComment] = useState("");
   const [files, setFiles] = useState([]);
   const [previews, setPreviews] = useState([]);
@@ -19,22 +22,53 @@ function TicketForm() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const handleFileChange = (e) => {
-    const selectedFiles = Array.from(e.target.files);
-    setFiles(selectedFiles);
+  useEffect(() => {
+    return () => {
+      previews.forEach((preview) => URL.revokeObjectURL(preview));
+    };
+  }, [previews]);
 
-    // Create previews for images
+  const handleFileChange = (e) => {
+    const selectedFiles = Array.from(e.target.files || []);
+
+    if (selectedFiles.length > 3) {
+      setError("You can upload up to 3 images per ticket.");
+      return;
+    }
+
+    previews.forEach((preview) => URL.revokeObjectURL(preview));
+    setFiles(selectedFiles);
+    setError("");
+
     const newPreviews = selectedFiles
-      .filter(file => file.type.startsWith('image/'))
-      .map(file => URL.createObjectURL(file));
-    
+      .filter((file) => file.type.startsWith("image/"))
+      .map((file) => URL.createObjectURL(file));
+
     setPreviews(newPreviews);
+  };
+
+  const resetForm = () => {
+    previews.forEach((preview) => URL.revokeObjectURL(preview));
+    setTitle("");
+    setDescription("");
+    setCategory("Maintenance");
+    setPriority("MEDIUM");
+    setLocation("");
+    setContactDetails("");
+    setInitialComment("");
+    setFiles([]);
+    setPreviews([]);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!title.trim() || !description.trim()) {
-      setError("Please provide a title and description.");
+    if (!title.trim() || !description.trim() || !location.trim()) {
+      setError("Please provide a title, description, and location.");
+      return;
+    }
+
+    if (files.length > 3) {
+      setError("You can upload up to 3 images per ticket.");
       return;
     }
 
@@ -42,31 +76,40 @@ function TicketForm() {
       setLoading(true);
       setError("");
 
-      const formData = new FormData();
-      formData.append("title", title);
-      formData.append("description", description);
-      formData.append("priority", priority);
-      
+      // 1. Create the Ticket via JSON
+      const ticketPayload = {
+        title,
+        description,
+        category,
+        priority,
+        location,
+        contactDetails,
+      };
+
+      const response = await api.post("/tickets", ticketPayload);
+      const ticketId = response.data.id;
+
+      // 2. Add initial comment if present
       if (initialComment.trim()) {
-        formData.append("comment", initialComment);
+        await api.post(`/tickets/${ticketId}/comments`, { content: initialComment });
       }
-      
-      files.forEach((file) => {
-        formData.append("files", file);
-      });
 
-      const response = await api.post("/tickets", formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      if (response.status === 201) {
-        setSuccess("Incident reported successfully! Redirecting...");
-        setTimeout(() => {
-          navigate(`/tickets/${response.data.id}`);
-        }, 1200);
+      // 3. Upload attachments sequentially
+      for (const file of files) {
+        const fileData = new FormData();
+        fileData.append("file", file);
+        await api.post(`/tickets/${ticketId}/attachments`, fileData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
       }
+
+      setSuccess("Incident reported successfully! Redirecting...");
+      resetForm();
+      onCreated?.(response.data);
+      setTimeout(() => {
+        navigate(`/tickets/${ticketId}`);
+      }, 1200);
+
     } catch (err) {
       setError(getApiErrorMessage(err, "Failed to submit the ticket."));
     } finally {
@@ -75,19 +118,22 @@ function TicketForm() {
   };
 
   return (
-    <article className="card shadow-md">
-      <div className="table-header">
-        <h2>Report an Incident</h2>
+    <article className="card ticket-form-card">
+      <div className="ticket-form-header">
+        <div>
+          <p className="eyebrow">New Incident</p>
+          <h2>Submit a student support ticket</h2>
+          <p className="page-subtitle" style={{ marginTop: "0.5rem" }}>
+            Share the problem clearly and attach up to three images so the campus support team can respond faster.
+          </p>
+        </div>
+        <div className="ticket-form-badge">POST /api/tickets</div>
       </div>
-
-      <p className="page-subtitle" style={{ marginBottom: "1.5rem" }}>
-        Tell us what happened. You can attach photos to help us resolve it faster.
-      </p>
 
       {error && <div className="alert alert-error" style={{ marginBottom: "1.5rem" }}>{error}</div>}
       {success && <div className="alert alert-success" style={{ marginBottom: "1.5rem" }}>{success}</div>}
 
-      <form onSubmit={handleSubmit} className="dashboard-stack">
+      <form onSubmit={handleSubmit} className="dashboard-stack ticket-form-layout">
         <div className="form-grid">
           <div className="input-group">
             <label htmlFor="title" className="eyebrow">Title *</label>
@@ -104,6 +150,24 @@ function TicketForm() {
 
           <div className="form-columns">
             <div className="input-group">
+              <label htmlFor="category" className="eyebrow">Category *</label>
+              <select
+                id="category"
+                className="input"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                disabled={loading}
+                required
+              >
+                <option value="Maintenance">Maintenance</option>
+                <option value="Security">Security</option>
+                <option value="IT Services">IT Services</option>
+                <option value="Janitorial">Janitorial</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div className="input-group">
               <label htmlFor="priority" className="eyebrow">Priority</label>
               <select
                 id="priority"
@@ -112,10 +176,37 @@ function TicketForm() {
                 onChange={(e) => setPriority(e.target.value)}
                 disabled={loading}
               >
-                <option value="LOW">Low - General query/minor issue</option>
-                <option value="MEDIUM">Medium - Functional problem</option>
-                <option value="HIGH">High - Critical failure</option>
+                <option value="LOW">Low - General query</option>
+                <option value="MEDIUM">Medium - Normal</option>
+                <option value="HIGH">High - Urgent</option>
               </select>
+            </div>
+          </div>
+
+          <div className="form-columns">
+            <div className="input-group">
+              <label htmlFor="location" className="eyebrow">Location *</label>
+              <input
+                id="location"
+              className="input"
+              placeholder="e.g. Block A, Room 302"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              disabled={loading}
+              required
+            />
+          </div>
+
+            <div className="input-group">
+              <label htmlFor="contact" className="eyebrow">Contact Details (Optional)</label>
+              <input
+                id="contact"
+                className="input"
+                placeholder="Phone or secondary email"
+                value={contactDetails}
+                onChange={(e) => setContactDetails(e.target.value)}
+                disabled={loading}
+              />
             </div>
           </div>
 
@@ -124,8 +215,8 @@ function TicketForm() {
             <textarea
               id="description"
               className="input"
-              rows="4"
-              placeholder="Explain the issue in detail, including location..."
+              rows="5"
+              placeholder="Explain the issue in detail. Include what happened, where it happened, and whether it affects other students."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               disabled={loading}
@@ -148,7 +239,7 @@ function TicketForm() {
 
           <div className="input-group">
             <label className="eyebrow">Attachments (Photos preferred)</label>
-            <div className="info-panel" style={{ background: "#f1f5f9", textAlign: "center", border: "2px dashed var(--border)" }}>
+            <div className="ticket-upload-dropzone">
               <input 
                 type="file" 
                 id="file-upload" 
@@ -158,21 +249,24 @@ function TicketForm() {
                 style={{ display: "none" }}
               />
               <label htmlFor="file-upload" className="btn btn-ghost" style={{ cursor: "pointer" }}>
-                Select Files
+                Select Images
               </label>
-              <p style={{ fontSize: "0.8rem", marginTop: "0.5rem", color: "var(--muted)" }}>
-                {files.length > 0 ? `${files.length} files selected` : "No files selected"}
+              <p style={{ fontSize: "0.9rem", marginTop: "0.75rem", color: "var(--muted)" }}>
+                PNG or JPG, up to 3 images total.
+              </p>
+              <p style={{ fontSize: "0.8rem", marginTop: "0.25rem", color: "var(--text)" }}>
+                {files.length > 0 ? `${files.length} image${files.length > 1 ? "s" : ""} selected` : "No images selected"}
               </p>
             </div>
             
             {previews.length > 0 && (
-              <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem", flexWrap: "wrap" }}>
+              <div className="ticket-preview-grid">
                 {previews.map((preview, idx) => (
                   <img 
                     key={idx} 
                     src={preview} 
                     alt="Preview" 
-                    style={{ width: "60px", height: "60px", objectFit: "cover", borderRadius: "8px", border: "1px solid var(--border)" }} 
+                    className="ticket-preview-image"
                   />
                 ))}
               </div>
@@ -180,7 +274,7 @@ function TicketForm() {
           </div>
         </div>
 
-        <div style={{ marginTop: "1rem", display: "flex", gap: "1rem" }}>
+        <div className="ticket-form-actions">
           <button
             type="submit"
             className="btn btn-primary"
@@ -192,7 +286,7 @@ function TicketForm() {
           <button
             type="button"
             className="btn btn-ghost"
-            onClick={() => navigate("/tickets")}
+            onClick={() => navigate(onCancelPath)}
             disabled={loading}
           >
             Cancel
