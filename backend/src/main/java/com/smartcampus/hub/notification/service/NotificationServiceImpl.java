@@ -5,6 +5,7 @@ import com.smartcampus.hub.notification.dto.NotificationResponse;
 import com.smartcampus.hub.notification.entity.Notification;
 import com.smartcampus.hub.notification.entity.NotificationCategory;
 import com.smartcampus.hub.notification.entity.NotificationType;
+import com.smartcampus.hub.notification.realtime.NotificationRealtimePublisher;
 import com.smartcampus.hub.notification.repository.NotificationRepository;
 import com.smartcampus.hub.user.entity.User;
 import com.smartcampus.hub.user.repository.UserRepository;
@@ -60,11 +61,14 @@ public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final UserRepository         userRepository;
+    private final NotificationRealtimePublisher notificationRealtimePublisher;
 
     public NotificationServiceImpl(NotificationRepository notificationRepository,
-                                   UserRepository userRepository) {
+                                   UserRepository userRepository,
+                                   NotificationRealtimePublisher notificationRealtimePublisher) {
         this.notificationRepository = notificationRepository;
         this.userRepository         = userRepository;
+        this.notificationRealtimePublisher = notificationRealtimePublisher;
     }
 
     // ── Core send ──────────────────────────────────────────────────────────
@@ -90,7 +94,12 @@ public class NotificationServiceImpl implements NotificationService {
 
         Notification notification = new Notification(user, type, category, message,
                                                      priority, referenceId, referenceType);
-        notificationRepository.save(notification);
+        Notification savedNotification = notificationRepository.save(notification);
+        NotificationResponse response = toResponse(savedNotification);
+
+        if (type == NotificationType.REMINDER_PENDING_BOOKING) {
+            notificationRealtimePublisher.publishAfterCommit(user.getEmail(), response);
+        }
     }
 
     // ── Retrieval ──────────────────────────────────────────────────────────
