@@ -92,19 +92,19 @@ function AdminDashboard() {
     }
   };
 
-  const handleDeactivate = async (targetUser) => {
-    const confirmed = window.confirm(`Deactivate ${targetUser.fullName}?`);
+  const handleDelete = async (targetUser) => {
+    const confirmed = window.confirm(`Delete ${targetUser.fullName}?`);
     if (!confirmed) {
       return;
     }
 
     try {
       await api.delete(`/users/${targetUser.id}`);
-      setNotice("User account deactivated.");
+      setNotice("User account deleted.");
       await loadUsers();
     } catch (requestError) {
       setNotice("");
-      setError(getApiErrorMessage(requestError, "Unable to deactivate this user."));
+      setError(getApiErrorMessage(requestError, "Unable to delete this user."));
     }
   };
 
@@ -135,7 +135,7 @@ function AdminDashboard() {
           <p className="eyebrow">Admin Dashboard</p>
           <h1>User Management</h1>
           <p className="page-subtitle">
-            Review accounts, change roles, and deactivate users from one simple dashboard.
+            Review accounts, change roles, and delete users from one simple dashboard.
           </p>
         </div>
       </section>
@@ -353,10 +353,10 @@ function AdminDashboard() {
                           </button>
                           <button
                             className="btn btn-danger btn-sm"
-                            onClick={() => handleDeactivate(entry)}
-                            disabled={!entry.active || isSelf}
+                            onClick={() => handleDelete(entry)}
+                            disabled={isSelf}
                           >
-                            Deactivate
+                            Delete
                           </button>
                         </div>
                       </td>

@@ -4,6 +4,7 @@ import ProtectedRoute from "../components/common/ProtectedRoute";
 import LoginPage from "../features/auth/pages/LoginPage";
 import RegisterPage from "../features/auth/pages/RegisterPage";
 import CompleteProfilePage from "../features/auth/pages/CompleteProfilePage";
+import VerifyEmailPage from "../features/auth/pages/VerifyEmailPage";
 import HomePage from "../pages/HomePage";
 import ProfilePage from "../features/auth/pages/ProfilePage";
 import AdminDashboard from "../features/admin/pages/AdminDashboard";
@@ -25,6 +26,7 @@ function AppRoutes() {
       <Route element={<MainLayout />}>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/" element={<ResourceListPage />} />
         <Route path="/home" element={<ResourceListPage />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />

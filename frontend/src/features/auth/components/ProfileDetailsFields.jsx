@@ -35,6 +35,8 @@ function ProfileDetailsFields({ form, onChange }) {
           value={form.phoneNumber}
           onChange={onChange}
           placeholder="07XXXXXXXX"
+          pattern="\d{10}"
+          title="Phone number must be exactly 10 digits"
           required
         />
       </label>
@@ -49,6 +51,8 @@ function ProfileDetailsFields({ form, onChange }) {
           value={form.studentId}
           onChange={onChange}
           placeholder="IT2026XXXX"
+          pattern="(?i)^it.*"
+          title="Student ID must start with IT"
           required
         />
       </label>
