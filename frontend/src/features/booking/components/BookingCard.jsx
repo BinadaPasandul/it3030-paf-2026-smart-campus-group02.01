@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { formatLabel } from "../../resources/resourceUi";
 
 const formatDateTime = (value) => {
@@ -15,6 +15,21 @@ const formatDateTime = (value) => {
 };
 
 const BookingCard = ({ booking, onCancel, onDelete, onCheckIn, isAdmin, onReview }) => {
+  const [currentTime, setCurrentTime] = useState(null);
+
+  useEffect(() => {
+    const updateCurrentTime = () => {
+      setCurrentTime(Date.now());
+    };
+
+    updateCurrentTime();
+    const intervalId = window.setInterval(updateCurrentTime, 30_000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, []);
+
   const getStatusBadgeClass = (status) => {
     switch (status) {
       case "APPROVED":
@@ -39,9 +54,11 @@ const BookingCard = ({ booking, onCancel, onDelete, onCheckIn, isAdmin, onReview
   const checkInWindowStartsAt = booking.checkInWindowStartsAt ? new Date(booking.checkInWindowStartsAt) : null;
   const checkInDeadlineAt = booking.checkInDeadlineAt ? new Date(booking.checkInDeadlineAt) : null;
   const checkedInAt = booking.checkedInAt ? new Date(booking.checkedInAt) : null;
-  const now = Date.now();
-  const checkInWindowOpened = !checkInWindowStartsAt || now >= checkInWindowStartsAt.getTime();
-  const checkInDeadlinePassed = checkInDeadlineAt ? now > checkInDeadlineAt.getTime() : false;
+  const checkInWindowOpened =
+    currentTime === null || !checkInWindowStartsAt || currentTime >= checkInWindowStartsAt.getTime();
+  const checkInDeadlinePassed = currentTime !== null && checkInDeadlineAt
+    ? currentTime > checkInDeadlineAt.getTime()
+    : false;
   const headcountLabel = booking.expectedAttendees ? `${booking.expectedAttendees} persons` : "Not specified";
   const noteLabel = booking.autoCancelled ? "System note" : "Admin note";
 
