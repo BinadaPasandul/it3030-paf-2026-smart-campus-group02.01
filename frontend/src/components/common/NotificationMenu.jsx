@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { IconButton, Badge, Popover, Box } from "@mui/material";
+import { IconButton, Badge, Popover, Box, Snackbar, Alert } from "@mui/material";
 import NotificationsIcon from "@mui/icons-material/NotificationsOutlined"; // Softer outlined icon
 import {
   getNotifications,
@@ -7,15 +7,19 @@ import {
   markNotificationAsRead,
   markAllNotificationsAsRead,
 } from "../../api/notificationApi";
+import { connectToNotificationRealtime } from "../../api/notificationRealtime";
 import NotificationHeader from "../notifications/NotificationHeader";
 import NotificationList from "../notifications/NotificationList";
+import { useAuth } from "../../features/auth/context/useAuth";
 
 function NotificationMenu() {
+  const { isAuthenticated } = useAuth();
   const [anchorEl, setAnchorEl] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState([]);
   const [filter, setFilter] = useState("all");
   const [loading, setLoading] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
 
   const fetchUnreadCount = async () => {
     try {
@@ -27,8 +31,32 @@ function NotificationMenu() {
   };
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      setUnreadCount(0);
+      setNotifications([]);
+      return undefined;
+    }
+
     fetchUnreadCount();
-  }, []);
+
+    const disconnect = connectToNotificationRealtime({
+      onNotification: (notification) => {
+        setUnreadCount((prev) => prev + 1);
+        setNotifications((prev) => {
+          const next = prev.filter((item) => item.id !== notification.id);
+          return [notification, ...next];
+        });
+
+        if (notification.type === "REMINDER_PENDING_BOOKING") {
+          setToastMessage(notification.message);
+        }
+      },
+    });
+
+    return () => {
+      disconnect?.();
+    };
+  }, [isAuthenticated]);
 
   const fetchList = async (currentFilter) => {
     try {
@@ -91,6 +119,9 @@ function NotificationMenu() {
   };
 
   const open = Boolean(anchorEl);
+  const handleToastClose = () => {
+    setToastMessage("");
+  };
 
   return (
     <>
@@ -168,6 +199,22 @@ function NotificationMenu() {
           />
         </Box>
       </Popover>
+
+      <Snackbar
+        open={Boolean(toastMessage)}
+        autoHideDuration={4000}
+        onClose={handleToastClose}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <Alert
+          onClose={handleToastClose}
+          severity="success"
+          variant="filled"
+          sx={{ width: "100%" }}
+        >
+          {toastMessage}
+        </Alert>
+      </Snackbar>
     </>
   );
 }
