@@ -126,7 +126,7 @@ function ResourceDetailsPage() {
     bookingStatusMessage = resource.selectedDateAvailabilityMessage;
   } else if (selectedDate && resource.availableOnSelectedDate) {
     bookingStatusTitle = "Available on the selected date";
-    bookingStatusMessage = `${resource.selectedDateAvailabilityMessage} Booked dates in the calendar mean at least one approved reservation already exists.`;
+    bookingStatusMessage = `${resource.selectedDateAvailabilityMessage} Booked dates in the calendar mean at least one confirmed reservation already exists.`;
   } else if (resource.currentlyBlocked) {
     bookingStatusTitle = "Temporarily unavailable right now";
     bookingStatusMessage = resource.currentBlockReason || "A scheduled maintenance window is active right now.";
@@ -339,7 +339,7 @@ function ResourceDetailsPage() {
             helperText={
               dateSyncing
                 ? "Updating booked slots and date-specific availability..."
-                : "Orange dates have scheduled out-of-service windows. Red dates have approved bookings."
+                : "Orange dates have scheduled out-of-service windows. Red dates have confirmed bookings."
             }
           />
 
