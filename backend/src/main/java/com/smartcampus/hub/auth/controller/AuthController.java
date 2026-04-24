@@ -50,6 +50,18 @@ public class AuthController {
         return ResponseEntity.ok(result);
     }
 
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Map<String, String>> forgotPassword(
+            @Valid @RequestBody com.smartcampus.hub.auth.dto.ForgotPasswordRequest request) {
+        return ResponseEntity.ok(authService.requestPasswordReset(request.getEmail()));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<Map<String, String>> resetPassword(
+            @Valid @RequestBody com.smartcampus.hub.auth.dto.ResetPasswordRequest request) {
+        return ResponseEntity.ok(authService.resetPassword(request.getEmail(), request.getCode(), request.getNewPassword()));
+    }
+
     @PostMapping("/logout")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void logout(HttpServletRequest request,

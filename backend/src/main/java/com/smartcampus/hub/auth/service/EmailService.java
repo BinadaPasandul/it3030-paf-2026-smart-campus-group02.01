@@ -38,4 +38,19 @@ public class EmailService {
         );
         mailSender.send(message);
     }
+
+    public void sendPasswordResetEmail(String toEmail, String code, String userName) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromAddress);
+        message.setTo(toEmail);
+        message.setSubject("Smart Campus Hub - Password Reset");
+        message.setText(
+                "Hello " + userName + ",\n\n"
+                        + "We received a request to reset your password. Your reset code is: " + code + "\n\n"
+                        + "This code will expire in 15 minutes.\n\n"
+                        + "If you did not request a password reset, please ignore this email and your password will remain unchanged.\n\n"
+                        + "-- Smart Campus Operations Hub"
+        );
+        mailSender.send(message);
+    }
 }

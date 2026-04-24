@@ -151,6 +151,12 @@ public class UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
     }
 
+    public void updatePassword(String email, String rawPassword) {
+        User user = findUserByEmail(email);
+        user.setPassword(passwordEncoder.encode(rawPassword));
+        userRepository.save(user);
+    }
+
     public UserResponse updateUserRole(@NonNull Long id, UpdateUserRoleRequest request) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));

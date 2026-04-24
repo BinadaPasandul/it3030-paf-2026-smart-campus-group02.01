@@ -85,7 +85,9 @@ function LoginPage() {
           </label>
 
           <label className="input-group" htmlFor="password">
-            <span>Password</span>
+            <span>
+              Password
+            </span>
             <input
               id="password"
               className="input"
@@ -97,6 +99,10 @@ function LoginPage() {
               required
             />
           </label>
+
+          <p className="helper-text" style={{ textAlign: "right", marginTop: "-10px", marginBottom: "10px" }}>
+            <Link to="/forgot-password">Forgot password?</Link>
+          </p>
 
           <button className="btn" type="submit" disabled={submitting}>
             {submitting ? "Signing in..." : "Login"}
