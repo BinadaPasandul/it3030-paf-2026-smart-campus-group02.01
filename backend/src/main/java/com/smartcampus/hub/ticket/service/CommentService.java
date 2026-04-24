@@ -119,7 +119,7 @@ public class CommentService {
 
         String preview = truncate(content, 80);
         String message = String.format(
-                "\uD83D\uDCAC %s added a comment on your ticket \"%s\" (#%d): \"%s\"",
+                "%s added a comment on your ticket \"%s\" (#%d): \"%s\"",
                 commenter.getFullName(), ticket.getTitle(), ticket.getId(), preview
         );
 
