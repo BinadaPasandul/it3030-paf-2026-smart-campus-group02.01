@@ -158,7 +158,7 @@ public class NotificationServiceImpl implements NotificationService {
     public void sendWelcomeNotification(Long userId, String userName) {
         sendNotificationWithPriority(
                 userId,
-                "🎉 Welcome to Smart Campus Hub, " + userName + "! Your account has been created successfully.",
+                "Welcome to Smart Campus Hub, " + userName + "! Your account has been created successfully.",
                 NotificationType.WELCOME,
                 null, null,
                 "HIGH"
@@ -169,7 +169,7 @@ public class NotificationServiceImpl implements NotificationService {
     public void sendRoleChangedNotification(Long userId, String oldRole, String newRole) {
         sendNotificationWithPriority(
                 userId,
-                "⚙️ Your role has been updated from " + oldRole + " to " + newRole + ".",
+                "Your role has been updated from " + oldRole + " to " + newRole + ".",
                 NotificationType.ROLE_CHANGED,
                 null, null,
                 "HIGH"
@@ -180,7 +180,7 @@ public class NotificationServiceImpl implements NotificationService {
     public void sendAccountWarning(Long userId, String reason) {
         sendNotificationWithPriority(
                 userId,
-                "⚠️ Your account has received a warning: " + reason,
+                "Your account has received a warning: " + reason,
                 NotificationType.ACCOUNT_WARNING,
                 null, null,
                 "HIGH"
@@ -189,10 +189,9 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public void sendNewLoginNotification(Long userId, String ipAddress) {
-        String ip = (ipAddress != null && !ipAddress.isBlank()) ? ipAddress : "unknown";
         sendNotificationWithPriority(
                 userId,
-                "🔐 New login detected from IP " + ip + ". If this wasn't you, contact admin immediately.",
+                "🔐 You have logged in. If this wasn't you, please contact the admin immediately.",
                 NotificationType.NEW_LOGIN,
                 null, null,
                 "HIGH"

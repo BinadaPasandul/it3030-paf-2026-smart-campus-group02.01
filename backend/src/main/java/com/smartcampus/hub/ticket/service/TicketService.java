@@ -183,7 +183,7 @@ public class TicketService {
      */
     private void notifyTicketCreated(Ticket ticket, Long creatorId) {
         String message = String.format(
-                "\uD83C\uDFAB Your ticket \"%s\" (#%d) has been submitted successfully. Status: OPEN.",
+                "Your ticket \"%s\" (#%d) has been submitted successfully. Status: OPEN.",
                 ticket.getTitle(), ticket.getId()
         );
         notificationService.sendNotification(
@@ -204,7 +204,7 @@ public class TicketService {
 
         // Notify the ticket owner
         String ownerMessage = String.format(
-                "\uD83D\uDC77 A technician (%s) has been assigned to your ticket \"%s\" (#%d). Status: IN_PROGRESS.",
+                "A technician (%s) has been assigned to your ticket \"%s\" (#%d). Status: IN_PROGRESS.",
                 technician.getFullName(), ticket.getTitle(), ticket.getId()
         );
         notificationService.sendNotificationWithPriority(
@@ -215,7 +215,7 @@ public class TicketService {
 
         // Notify the technician themselves
         String techMessage = String.format(
-                "\uD83D\uDD27 You have been assigned to ticket \"%s\" (#%d). Please review and begin work.",
+                "You have been assigned to ticket \"%s\" (#%d). Please review and begin work.",
                 ticket.getTitle(), ticket.getId()
         );
         notificationService.sendNotificationWithPriority(
@@ -241,21 +241,21 @@ public class TicketService {
             case REJECTED -> {
                 String reason = (request.getRejectionReason() != null && !request.getRejectionReason().isBlank())
                         ? " Reason: " + request.getRejectionReason() : "";
-                message  = String.format("\u274C Your ticket \"%s\" (#%d) has been REJECTED.%s", title, savedId, reason);
+                message  = String.format("Your ticket \"%s\" (#%d) has been REJECTED.%s", title, savedId, reason);
                 priority = "HIGH";
             }
             case RESOLVED -> {
                 String notes = (request.getResolutionNotes() != null && !request.getResolutionNotes().isBlank())
                         ? " Notes: " + request.getResolutionNotes() : "";
-                message  = String.format("\u2705 Your ticket \"%s\" (#%d) has been RESOLVED.%s", title, savedId, notes);
+                message  = String.format("Your ticket \"%s\" (#%d) has been RESOLVED.%s", title, savedId, notes);
                 priority = "HIGH";
             }
             case CLOSED -> {
-                message  = String.format("\uD83D\uDD12 Your ticket \"%s\" (#%d) has been CLOSED.", title, savedId);
+                message  = String.format("Your ticket \"%s\" (#%d) has been CLOSED.", title, savedId);
                 priority = "NORMAL";
             }
             default -> {
-                message  = String.format("\uD83D\uDD04 Your ticket \"%s\" (#%d) status changed to %s.", title, savedId, newStatus);
+                message  = String.format("Your ticket \"%s\" (#%d) status changed to %s.", title, savedId, newStatus);
                 priority = "NORMAL";
             }
         }
