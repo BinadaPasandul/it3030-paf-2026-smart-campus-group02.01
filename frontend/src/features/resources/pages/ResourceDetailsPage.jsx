@@ -9,9 +9,12 @@ import {
   formatDateLabel,
   formatLabel,
   getAvailabilityRange,
+  getResourceCapacityLabel,
   getResourceDescriptionText,
+  getResourceSecondaryMeta,
   getResourceStatusClass,
   getResourceTypeMeta,
+  isEquipmentResource,
 } from "../resourceUi";
 import "../resources.css";
 
@@ -104,6 +107,7 @@ function ResourceDetailsPage() {
   }
 
   const { icon: ResourceIcon, tone, label } = getResourceTypeMeta(resource.type);
+  const secondaryMeta = getResourceSecondaryMeta(resource);
   const bookingDisabled = resource.permanentlyUnavailable;
   const selectedDateBlocks = resource.selectedDateBlocks || [];
   const selectedDateBookings = resource.selectedDateBookings || [];
@@ -178,8 +182,8 @@ function ResourceDetailsPage() {
             <strong>{resource.location}</strong>
           </article>
           <article className="resource-highlight-card">
-            <span>Capacity</span>
-            <strong>{resource.capacity} people</strong>
+            <span>{secondaryMeta.label}</span>
+            <strong>{secondaryMeta.value}</strong>
           </article>
           <article className="resource-highlight-card">
             <span>Availability</span>
@@ -260,8 +264,16 @@ function ResourceDetailsPage() {
               <dt>
                 <FiUsers /> Capacity
               </dt>
-              <dd>{resource.capacity} people</dd>
+              <dd>{getResourceCapacityLabel(resource)}</dd>
             </div>
+            {isEquipmentResource(resource.type) ? (
+              <div>
+                <dt>
+                  <FiUsers /> Equipment type
+                </dt>
+                <dd>{formatLabel(resource.equipmentType)}</dd>
+              </div>
+            ) : null}
             <div>
               <dt>
                 <FiMapPin /> Location

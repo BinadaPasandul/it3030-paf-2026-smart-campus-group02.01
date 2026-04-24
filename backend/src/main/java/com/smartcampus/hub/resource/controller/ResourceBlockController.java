@@ -38,7 +38,6 @@ public class ResourceBlockController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @GetMapping
     public ResponseEntity<List<ResourceBlockResponse>> getResourceBlocks(@PathVariable Long resourceId) {
         return ResponseEntity.ok(resourceBlockService.getCurrentAndUpcomingBlocks(resourceId));

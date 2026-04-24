@@ -1,6 +1,6 @@
 import {
+  FiActivity,
   FiBookOpen,
-  FiCamera,
   FiCpu,
   FiGrid,
   FiMonitor,
@@ -11,8 +11,17 @@ export const RESOURCE_TYPES = [
   "LECTURE_HALL",
   "LAB",
   "MEETING_ROOM",
+  "EQUIPMENT",
+  "SPORTS_ENTERTAINMENT",
+];
+
+export const EQUIPMENT_TYPES = [
   "PROJECTOR",
   "CAMERA",
+  "MICROPHONE",
+  "SPEAKER",
+  "LAPTOP",
+  "CABLE_KIT",
 ];
 
 export const RESOURCE_STATUSES = ["ACTIVE", "OUT_OF_SERVICE"];
@@ -22,6 +31,16 @@ export const CAMPUS_BUILDINGS = [
   "Main Building",
   "Engineering Building",
   "Business Management Building",
+];
+export const SPORTS_ENTERTAINMENT_VENUES = [
+  "Auditorium",
+  "Ground",
+  "Indoor",
+  "Tennis Court",
+  "Volleyball Court",
+  "Basketball Court",
+  "Gathering Point",
+  "Swimming Pool",
 ];
 
 const BUILDING_CODE_RULES = [
@@ -47,15 +66,15 @@ const RESOURCE_TYPE_META = {
     tone: "team",
     label: "Meeting Room",
   },
-  PROJECTOR: {
+  EQUIPMENT: {
     icon: FiMonitor,
     tone: "media",
-    label: "Projector",
+    label: "Equipment",
   },
-  CAMERA: {
-    icon: FiCamera,
-    tone: "optic",
-    label: "Camera",
+  SPORTS_ENTERTAINMENT: {
+    icon: FiActivity,
+    tone: "default",
+    label: "Sports & Entertainment",
   },
 };
 
@@ -79,6 +98,18 @@ export function getExpectedBuildingForCode(code = "") {
 
 export function usesAutomaticBuildingLocation(type = "") {
   return type === "LAB" || type === "LECTURE_HALL";
+}
+
+export function isEquipmentResource(type = "") {
+  return type === "EQUIPMENT";
+}
+
+export function usesSportsVenueLocations(type = "") {
+  return type === "SPORTS_ENTERTAINMENT";
+}
+
+export function getLocationOptionsForType(type = "") {
+  return usesSportsVenueLocations(type) ? SPORTS_ENTERTAINMENT_VENUES : CAMPUS_BUILDINGS;
 }
 
 export function formatTimeLabel(value = "") {
@@ -142,10 +173,40 @@ export function formatBlockWindow(block) {
   }
 
   if (block.allDay) {
-    return `${formatDateLabel(block.blockDate)} • All day`;
+    return `${formatDateLabel(block.blockDate)} - All day`;
   }
 
-  return `${formatDateLabel(block.blockDate)} • ${formatTimeLabel(block.startTime)} - ${formatTimeLabel(block.endTime)}`;
+  return `${formatDateLabel(block.blockDate)} - ${formatTimeLabel(block.startTime)} - ${formatTimeLabel(block.endTime)}`;
+}
+
+export function getResourceCapacityLabel(resource) {
+  if (!resource) {
+    return "Not available";
+  }
+
+  if (isEquipmentResource(resource.type)) {
+    return "Not applicable";
+  }
+
+  if (resource.capacity === null || resource.capacity === undefined || resource.capacity === "") {
+    return "Not available";
+  }
+
+  return `${resource.capacity} people`;
+}
+
+export function getResourceSecondaryMeta(resource) {
+  if (isEquipmentResource(resource?.type)) {
+    return {
+      label: "Equipment Type",
+      value: formatLabel(resource?.equipmentType),
+    };
+  }
+
+  return {
+    label: "Capacity",
+    value: getResourceCapacityLabel(resource),
+  };
 }
 
 export function timeToMinutes(value = "") {

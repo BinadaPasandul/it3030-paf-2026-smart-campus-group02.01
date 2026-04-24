@@ -11,11 +11,13 @@ import com.smartcampus.hub.resource.dto.CreateResourceRequest;
 import com.smartcampus.hub.resource.dto.ResourceBlockResponse;
 import com.smartcampus.hub.resource.dto.ResourceResponse;
 import com.smartcampus.hub.resource.dto.UpdateResourceRequest;
+import com.smartcampus.hub.resource.entity.EquipmentType;
 import com.smartcampus.hub.resource.entity.Resource;
 import com.smartcampus.hub.resource.entity.ResourceStatus;
 import com.smartcampus.hub.resource.entity.ResourceType;
 import com.smartcampus.hub.resource.repository.ResourceRepository;
 import com.smartcampus.hub.resource.validation.CampusBuildingCodeRule;
+import com.smartcampus.hub.resource.validation.SportsEntertainmentVenue;
 import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -46,7 +48,13 @@ public class ResourceServiceImpl implements ResourceService {
         String normalizedLocation = CampusBuildingCodeRule.normalize(request.getLocation());
 
         validateAvailabilityWindow(request.getAvailableFrom(), request.getAvailableTo());
-        validateBuildingCodeRule(normalizedCode, normalizedLocation, request.getType());
+        validateResourceAttributes(
+                normalizedCode,
+                normalizedLocation,
+                request.getType(),
+                request.getEquipmentType(),
+                request.getCapacity()
+        );
 
         if (resourceRepository.existsByCode(normalizedCode)) {
             throw new DuplicateEntityException("Resource code already exists");
@@ -56,6 +64,7 @@ public class ResourceServiceImpl implements ResourceService {
         resource.setName(request.getName());
         resource.setCode(normalizedCode);
         resource.setType(request.getType());
+        resource.setEquipmentType(resolveEquipmentType(request.getType(), request.getEquipmentType()));
         resource.setCapacity(request.getCapacity());
         resource.setLocation(normalizedLocation);
         resource.setDescription(request.getDescription());
@@ -112,7 +121,13 @@ public class ResourceServiceImpl implements ResourceService {
         String normalizedLocation = CampusBuildingCodeRule.normalize(request.getLocation());
 
         validateAvailabilityWindow(request.getAvailableFrom(), request.getAvailableTo());
-        validateBuildingCodeRule(normalizedCode, normalizedLocation, request.getType());
+        validateResourceAttributes(
+                normalizedCode,
+                normalizedLocation,
+                request.getType(),
+                request.getEquipmentType(),
+                request.getCapacity()
+        );
 
         Resource resource = resourceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found with id: " + id));
@@ -124,6 +139,7 @@ public class ResourceServiceImpl implements ResourceService {
         resource.setName(request.getName());
         resource.setCode(normalizedCode);
         resource.setType(request.getType());
+        resource.setEquipmentType(resolveEquipmentType(request.getType(), request.getEquipmentType()));
         resource.setCapacity(request.getCapacity());
         resource.setLocation(normalizedLocation);
         resource.setDescription(request.getDescription());
@@ -168,6 +184,48 @@ public class ResourceServiceImpl implements ResourceService {
         }
     }
 
+    private void validateResourceAttributes(String code,
+                                            String location,
+                                            ResourceType type,
+                                            EquipmentType equipmentType,
+                                            Integer capacity) {
+        if (type == ResourceType.EQUIPMENT) {
+            if (equipmentType == null) {
+                throw new IllegalArgumentException("Equipment type is required for EQUIPMENT resources.");
+            }
+
+            if (capacity != null && capacity < 0) {
+                throw new IllegalArgumentException("Capacity must be 0 or greater.");
+            }
+            return;
+        }
+
+        if (equipmentType != null) {
+            throw new IllegalArgumentException("Equipment type can only be used when the resource type is EQUIPMENT.");
+        }
+
+        if (capacity == null) {
+            throw new IllegalArgumentException("Capacity is required for this resource type.");
+        }
+
+        if (capacity < 0) {
+            throw new IllegalArgumentException("Capacity must be 0 or greater.");
+        }
+
+        if (type == ResourceType.SPORTS_ENTERTAINMENT) {
+            if (!SportsEntertainmentVenue.isValidLocation(location)) {
+                throw new IllegalArgumentException(
+                        "SPORTS_ENTERTAINMENT resources must use one of these venues: "
+                                + String.join(", ", SportsEntertainmentVenue.getAllowedLocations())
+                                + "."
+                );
+            }
+            return;
+        }
+
+        validateBuildingCodeRule(code, location, type);
+    }
+
     private void validateBuildingCodeRule(String code, String location, ResourceType type) {
         if (type != ResourceType.LAB && type != ResourceType.LECTURE_HALL) {
             return;
@@ -193,6 +251,10 @@ public class ResourceServiceImpl implements ResourceService {
         }
     }
 
+    private EquipmentType resolveEquipmentType(ResourceType type, EquipmentType equipmentType) {
+        return type == ResourceType.EQUIPMENT ? equipmentType : null;
+    }
+
     private ResourceResponse mapToResponse(Resource resource, boolean includeBlocks, LocalDate selectedDate) {
         List<ResourceBlockResponse> blocks = resourceBlockService.getCurrentAndUpcomingBlocks(resource.getId());
         ResourceBlockResponse currentBlock = blocks.stream()
@@ -209,6 +271,7 @@ public class ResourceServiceImpl implements ResourceService {
         response.setName(resource.getName());
         response.setCode(resource.getCode());
         response.setType(resource.getType());
+        response.setEquipmentType(resource.getEquipmentType());
         response.setCapacity(resource.getCapacity());
         response.setLocation(resource.getLocation());
         response.setDescription(resource.getDescription());

@@ -110,8 +110,8 @@ public class BookingService {
 
         notificationService.sendNotification(
                 user.getId(),
-                "Your booking request for \"" + resource.getName() + "\" on " + request.getBookingDate()
-                        + " has been submitted and is awaiting admin approval.",
+                "Your booking request for \"" + resource.getName() + "\" on " + request.getBookingDate() +
+                " has been submitted and is awaiting admin approval.",
                 NotificationType.REMINDER_PENDING_BOOKING,
                 savedBooking.getId(),
                 "BOOKING"

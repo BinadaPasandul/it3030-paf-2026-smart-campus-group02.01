@@ -50,6 +50,7 @@ frontend/.vite/
 # =========================
 *.tmp
 *.bak
+*.txt
 logs/
 
 #
