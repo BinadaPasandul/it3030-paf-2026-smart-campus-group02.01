@@ -74,7 +74,7 @@ public class UserController {
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deactivateUser(@PathVariable @NonNull Long id) {
-        userService.deactivateUser(id);
+    public void deleteUser(@PathVariable @NonNull Long id) {
+        userService.deleteUser(id);
     }
 }

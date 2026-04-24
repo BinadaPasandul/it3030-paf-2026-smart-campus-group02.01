@@ -71,7 +71,8 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/error", "/webjars/**", "/oauth2/**", "/login/**", "/uploads/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register", "/api/auth/logout").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register", "/api/auth/logout",
+                                "/api/auth/verify-email", "/api/auth/resend-verification").permitAll()
                         .requestMatchers("/ws/**").authenticated()
                         .requestMatchers("/api/users/me").authenticated()
                         // Notification endpoints — users own their notifications

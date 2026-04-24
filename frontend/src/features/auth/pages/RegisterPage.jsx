@@ -41,11 +41,10 @@ function RegisterPage() {
 
     try {
       await registerUser(form);
-      navigate("/login", {
+      navigate("/verify-email", {
         replace: true,
         state: {
-          registeredEmail: form.email,
-          successMessage: "Registration successful. You can now login with your new account.",
+          email: form.email,
         },
       });
     } catch (requestError) {
@@ -95,8 +94,10 @@ function RegisterPage() {
               type="password"
               value={form.password}
               onChange={handleChange}
-              placeholder="Minimum 6 characters"
+              placeholder="Minimum 6 characters, mixed case"
               minLength={6}
+              pattern="(?=.*[a-z])(?=.*[A-Z]).{6,}"
+              title="Password must contain at least one uppercase and one lowercase letter"
               required
             />
           </label>

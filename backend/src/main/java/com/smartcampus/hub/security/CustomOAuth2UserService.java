@@ -71,6 +71,9 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
             if (!user.isActive()) {
                 throw new OAuth2AuthenticationException("User account is deactivated");
             }
+            if (!user.isEmailVerified()) {
+                user.setEmailVerified(true);
+            }
             userService.populateGoogleUser(user, fullName, provider, providerId);
             isNewUser = false;
         } else {
@@ -82,6 +85,7 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
             user.setRole(Role.USER);
             user.setActive(true);
             user.setProfileCompleted(false);
+            user.setEmailVerified(true); // Google already verifies the email
             isNewUser = true;
         }
 

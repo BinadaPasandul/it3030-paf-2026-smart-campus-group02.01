@@ -57,13 +57,18 @@ public class AdminSeedConfig {
                     changed = true;
                 }
 
+                if (!existingUser.isEmailVerified()) {
+                    existingUser.setEmailVerified(true);
+                    changed = true;
+                }
+
                 if (changed) {
                     userRepository.save(existingUser);
                 }
                 return;
             }
 
-            userService.createLocalUser(
+            User admin = userService.createLocalUser(
                     fullName,
                     email,
                     password,
@@ -77,6 +82,8 @@ public class AdminSeedConfig {
                     Role.ADMIN,
                     true
             );
+            admin.setEmailVerified(true);
+            userRepository.save(admin);
         };
     }
 }

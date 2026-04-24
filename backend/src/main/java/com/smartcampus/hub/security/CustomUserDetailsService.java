@@ -33,6 +33,10 @@ public class CustomUserDetailsService implements UserDetailsService {
             throw new DisabledException("User account is deactivated");
         }
 
+        if (!user.isEmailVerified()) {
+            throw new DisabledException("Please verify your email before logging in. Check your inbox for a verification code.");
+        }
+
         return new org.springframework.security.core.userdetails.User(
                 user.getEmail(),
                 user.getPassword(),
