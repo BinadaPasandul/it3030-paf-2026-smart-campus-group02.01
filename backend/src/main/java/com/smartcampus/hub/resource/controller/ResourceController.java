@@ -33,7 +33,6 @@ public class ResourceController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @GetMapping
     public ResponseEntity<List<ResourceResponse>> getAllResources(
             @RequestParam(required = false) ResourceType type,
@@ -47,7 +46,6 @@ public class ResourceController {
         );
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @GetMapping("/{id}")
     public ResponseEntity<ResourceResponse> getResourceById(
             @PathVariable Long id,
