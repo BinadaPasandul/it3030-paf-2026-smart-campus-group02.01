@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { FiClock, FiMapPin, FiUsers } from "react-icons/fi";
 import {
   formatBlockWindow,
+  formatDateLabel,
   formatLabel,
   getAvailabilityRange,
   getResourceDescriptionText,
@@ -9,9 +10,15 @@ import {
   getResourceTypeMeta,
 } from "../resourceUi";
 
-function ResourceCard({ resource }) {
+function ResourceCard({ resource, selectedDate = "" }) {
   const { icon: ResourceIcon, tone, label } = getResourceTypeMeta(resource.type);
   const bookingDisabled = resource.permanentlyUnavailable;
+  const detailsQuery = selectedDate ? `?date=${selectedDate}` : "";
+  const selectedDateBlocks = resource.selectedDateBlocks || [];
+  const hasSelectedDateBlocks = selectedDateBlocks.length > 0;
+  const selectedDateTone = hasSelectedDateBlocks
+    ? "resource-card-date-note-limited"
+    : "resource-card-date-note-open";
 
   return (
     <article className="resource-card">
@@ -36,6 +43,17 @@ function ResourceCard({ resource }) {
       <p className="resource-card-description">
         {getResourceDescriptionText(resource.description)}
       </p>
+
+      {selectedDate ? (
+        <div className={`resource-card-date-note ${selectedDateTone}`}>
+          <strong>{resource.selectedDateAvailabilityMessage || `Available on ${formatDateLabel(selectedDate)}.`}</strong>
+          <span>
+            {hasSelectedDateBlocks
+              ? `Selected date has ${selectedDateBlocks.length} scheduled blocked ${selectedDateBlocks.length === 1 ? "window" : "windows"}.`
+              : `Available on ${formatDateLabel(selectedDate)} during the normal operating window.`}
+          </span>
+        </div>
+      ) : null}
 
       {resource.currentlyBlocked ? (
         <div className="resource-card-warning">
@@ -81,7 +99,7 @@ function ResourceCard({ resource }) {
       </div>
 
       <div className="resource-card-actions">
-        <Link to={`/resources/${resource.id}`} className="btn btn-secondary">
+        <Link to={`/resources/${resource.id}${detailsQuery}`} className="btn btn-secondary">
           View Details
         </Link>
         <Link

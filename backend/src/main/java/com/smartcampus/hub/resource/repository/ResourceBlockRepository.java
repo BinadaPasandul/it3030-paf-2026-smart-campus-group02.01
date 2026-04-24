@@ -33,6 +33,16 @@ public interface ResourceBlockRepository extends JpaRepository<ResourceBlock, Lo
             """)
     List<ResourceBlock> findCurrentAndUpcomingBlocksByResourceId(Long resourceId, LocalDate today, LocalTime nowTime);
 
+    @Query("""
+            SELECT rb
+            FROM ResourceBlock rb
+            WHERE rb.resource.id = :resourceId
+              AND rb.blockDate = :date
+            ORDER BY CASE WHEN rb.allDay = true THEN 0 ELSE 1 END,
+                     rb.startTime ASC
+            """)
+    List<ResourceBlock> findBlocksByResourceIdAndDate(Long resourceId, LocalDate date);
+
     // Half-open overlap rule: touching edges is allowed, but any real time intersection is rejected.
     @Query("""
             SELECT rb

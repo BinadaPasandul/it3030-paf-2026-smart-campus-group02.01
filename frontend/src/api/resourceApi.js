@@ -5,8 +5,8 @@ export const getAllResources = async (params = {}) => {
   return response.data;
 };
 
-export const getResourceById = async (id) => {
-  const response = await api.get(`/resources/${id}`);
+export const getResourceById = async (id, params = {}) => {
+  const response = await api.get(`/resources/${id}`, { params });
   return response.data;
 };
 

@@ -26,4 +26,29 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
            "AND b.status = 'APPROVED' " +
            "AND ((b.startTime < :endTime AND b.endTime > :startTime))")
     List<Booking> findApprovedConflictingBookings(Long resourceId, LocalDate date, LocalTime startTime, LocalTime endTime, Long excludeId);
+
+    @Query("""
+            SELECT DISTINCT b.bookingDate
+            FROM Booking b
+            WHERE b.resource.id = :resourceId
+              AND b.status = 'APPROVED'
+            ORDER BY b.bookingDate ASC
+            """)
+    List<LocalDate> findAllApprovedBookedDatesByResourceId(Long resourceId);
+
+    @Query("""
+            SELECT DISTINCT b.bookingDate
+            FROM Booking b
+            WHERE b.resource.id = :resourceId
+              AND b.status = 'APPROVED'
+              AND b.bookingDate >= :fromDate
+            ORDER BY b.bookingDate ASC
+            """)
+    List<LocalDate> findApprovedBookedDatesByResourceId(Long resourceId, LocalDate fromDate);
+
+    List<Booking> findByResourceIdAndBookingDateAndStatusOrderByStartTimeAsc(
+            Long resourceId,
+            LocalDate bookingDate,
+            BookingStatus status
+    );
 }

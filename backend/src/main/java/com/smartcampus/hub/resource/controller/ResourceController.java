@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -38,17 +39,21 @@ public class ResourceController {
             @RequestParam(required = false) ResourceType type,
             @RequestParam(required = false) String location,
             @RequestParam(required = false) Integer minCapacity,
-            @RequestParam(required = false) ResourceStatus status
+            @RequestParam(required = false) ResourceStatus status,
+            @RequestParam(required = false) LocalDate date
     ) {
         return ResponseEntity.ok(
-                resourceService.getAllResources(type, location, minCapacity, status)
+                resourceService.getAllResources(type, location, minCapacity, status, date)
         );
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     @GetMapping("/{id}")
-    public ResponseEntity<ResourceResponse> getResourceById(@PathVariable Long id) {
-        return ResponseEntity.ok(resourceService.getResourceById(id));
+    public ResponseEntity<ResourceResponse> getResourceById(
+            @PathVariable Long id,
+            @RequestParam(required = false) LocalDate date
+    ) {
+        return ResponseEntity.ok(resourceService.getResourceById(id, date));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
