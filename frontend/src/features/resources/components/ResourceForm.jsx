@@ -1,18 +1,24 @@
 import { useState } from "react";
 import {
   CAMPUS_BUILDINGS,
+  EQUIPMENT_TYPES,
   RESOURCE_TYPES,
+  SPORTS_ENTERTAINMENT_VENUES,
   SUPPORTED_BUILDING_CODE_PREFIXES,
   formatLabel,
   getExpectedBuildingForCode,
+  getLocationOptionsForType,
+  isEquipmentResource,
   usesAutomaticBuildingLocation,
+  usesSportsVenueLocations,
 } from "../resourceUi";
 
 const defaultFormData = {
   name: "",
   code: "",
   type: "",
-  capacity: 0,
+  equipmentType: "",
+  capacity: "",
   location: "",
   description: "",
   availableFrom: "",
@@ -23,18 +29,33 @@ function buildInitialFormData(initialValues) {
   const baseFormData = {
     ...defaultFormData,
     ...(initialValues ?? {}),
+    equipmentType: initialValues?.equipmentType ?? "",
+    capacity: initialValues?.capacity ?? "",
   };
 
   if (usesAutomaticBuildingLocation(baseFormData.type)) {
     return {
       ...baseFormData,
       location: getExpectedBuildingForCode(baseFormData.code),
+      equipmentType: "",
+    };
+  }
+
+  if (usesSportsVenueLocations(baseFormData.type)) {
+    return {
+      ...baseFormData,
+      location: SPORTS_ENTERTAINMENT_VENUES.includes(baseFormData.location)
+        ? baseFormData.location
+        : "",
+      equipmentType: "",
     };
   }
 
   return {
     ...baseFormData,
     location: CAMPUS_BUILDINGS.includes(baseFormData.location) ? baseFormData.location : "",
+    equipmentType: isEquipmentResource(baseFormData.type) ? baseFormData.equipmentType : "",
+    capacity: isEquipmentResource(baseFormData.type) ? "" : baseFormData.capacity,
   };
 }
 
@@ -54,7 +75,7 @@ function ResourceForm({
     setFormData((prev) => {
       const nextFormData = {
         ...prev,
-        [name]: name === "capacity" ? Number(value) : value,
+        [name]: name === "capacity" ? (value === "" ? "" : Number(value)) : value,
       };
 
       const nextType = name === "type" ? value : nextFormData.type;
@@ -62,8 +83,22 @@ function ResourceForm({
 
       if (usesAutomaticBuildingLocation(nextType)) {
         nextFormData.location = getExpectedBuildingForCode(nextCode);
-      } else if (name === "type" && !CAMPUS_BUILDINGS.includes(nextFormData.location)) {
-        nextFormData.location = "";
+        nextFormData.equipmentType = "";
+      } else if (usesSportsVenueLocations(nextType)) {
+        if (!SPORTS_ENTERTAINMENT_VENUES.includes(nextFormData.location)) {
+          nextFormData.location = "";
+        }
+        nextFormData.equipmentType = "";
+      } else {
+        if (!CAMPUS_BUILDINGS.includes(nextFormData.location)) {
+          nextFormData.location = "";
+        }
+      }
+
+      if (isEquipmentResource(nextType)) {
+        nextFormData.capacity = "";
+      } else {
+        nextFormData.equipmentType = "";
       }
 
       return nextFormData;
@@ -72,9 +107,19 @@ function ResourceForm({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit(formData);
+    onSubmit({
+      ...formData,
+      capacity: isEquipmentResource(formData.type)
+        ? null
+        : formData.capacity === ""
+          ? null
+          : Number(formData.capacity),
+      equipmentType: isEquipmentResource(formData.type) ? formData.equipmentType || null : null,
+    });
   };
 
+  const isEquipment = isEquipmentResource(formData.type);
+  const usesVenueLocations = usesSportsVenueLocations(formData.type);
   const usesBuildingCodeValidation = usesAutomaticBuildingLocation(formData.type);
   const normalizedCode = formData.code.trim().toUpperCase();
   const hasCodeInput = formData.code.trim().length > 0;
@@ -83,6 +128,12 @@ function ResourceForm({
     : "";
   const hasInvalidBuildingCode =
     usesBuildingCodeValidation && hasCodeInput && !expectedBuilding;
+  const locationOptions = getLocationOptionsForType(formData.type);
+  const locationPlaceholder = isEquipment
+    ? "Select setup or delivery location"
+    : usesVenueLocations
+      ? "Select a venue"
+      : "Select a building";
 
   let buildingGuidanceTone = "info";
   let buildingGuidanceTitle = "Building code guidance";
@@ -97,6 +148,9 @@ function ResourceForm({
     buildingGuidanceTitle = "Location auto-filled";
     buildingGuidanceMessage = `${normalizedCode} maps to ${expectedBuilding}.`;
   }
+
+  const equipmentGuidanceMessage = "For equipment, choose the setup or delivery location and select the equipment subtype. Capacity is not required.";
+  const sportsGuidanceMessage = "Sports and entertainment resources use venue-style locations. Capacity remains required so filtering and planning still work.";
 
   return (
     <form onSubmit={handleSubmit} className="card resource-form-card">
@@ -114,7 +168,7 @@ function ResourceForm({
       <div className="resource-form-grid">
         <div className="resource-form-columns resource-form-columns-balanced">
           <div className="resource-form-field">
-            <label htmlFor="resource-name">Name</label>
+            <label htmlFor="resource-name">Resource Name</label>
             <input
               id="resource-name"
               type="text"
@@ -128,7 +182,7 @@ function ResourceForm({
           </div>
 
           <div className="resource-form-field">
-            <label htmlFor="resource-code">Code</label>
+            <label htmlFor="resource-code">Resource Code</label>
             <input
               id="resource-code"
               type="text"
@@ -162,19 +216,40 @@ function ResourceForm({
             </select>
           </div>
 
-          <div className="resource-form-field">
-            <label htmlFor="resource-capacity">Capacity</label>
-            <input
-              id="resource-capacity"
-              type="number"
-              className="input"
-              name="capacity"
-              value={formData.capacity}
-              onChange={handleChange}
-              min="0"
-              required
-            />
-          </div>
+          {isEquipment ? (
+            <div className="resource-form-field">
+              <label htmlFor="resource-equipment-type">Equipment Type</label>
+              <select
+                id="resource-equipment-type"
+                className="input"
+                name="equipmentType"
+                value={formData.equipmentType}
+                onChange={handleChange}
+                required
+              >
+                <option value="">Select equipment type</option>
+                {EQUIPMENT_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {formatLabel(type)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div className="resource-form-field">
+              <label htmlFor="resource-capacity">Capacity</label>
+              <input
+                id="resource-capacity"
+                type="number"
+                className="input"
+                name="capacity"
+                value={formData.capacity}
+                onChange={handleChange}
+                min="0"
+                required
+              />
+            </div>
+          )}
 
           <div className="resource-form-field">
             <label htmlFor="resource-location">Location</label>
@@ -197,10 +272,10 @@ function ResourceForm({
                 onChange={handleChange}
                 required
               >
-                <option value="">Select a building</option>
-                {CAMPUS_BUILDINGS.map((building) => (
-                  <option key={building} value={building}>
-                    {building}
+                <option value="">{locationPlaceholder}</option>
+                {locationOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
                   </option>
                 ))}
               </select>
@@ -212,6 +287,20 @@ function ResourceForm({
           <div className={`resource-building-note resource-building-note-${buildingGuidanceTone}`}>
             <strong>{buildingGuidanceTitle}</strong>
             <p>{buildingGuidanceMessage}</p>
+          </div>
+        ) : null}
+
+        {isEquipment ? (
+          <div className="resource-building-note resource-building-note-info">
+            <strong>Equipment handling guidance</strong>
+            <p>{equipmentGuidanceMessage}</p>
+          </div>
+        ) : null}
+
+        {usesVenueLocations ? (
+          <div className="resource-building-note resource-building-note-info">
+            <strong>Venue selection guidance</strong>
+            <p>{sportsGuidanceMessage}</p>
           </div>
         ) : null}
 
@@ -251,7 +340,7 @@ function ResourceForm({
             name="description"
             value={formData.description}
             onChange={handleChange}
-            placeholder="Describe equipment, room setup, or any booking restrictions."
+            placeholder="Describe the room, venue, or equipment setup expectations."
           />
         </div>
 

@@ -25,6 +25,7 @@ import {
   formatBlockWindow,
   formatLabel,
   getAvailabilityRange,
+  getResourceSecondaryMeta,
   getResourceStatusClass,
 } from "../resourceUi";
 import ConfirmActionModal from "../components/ConfirmActionModal";
@@ -185,6 +186,7 @@ function AdminResourcesPage() {
       code: resource.code,
       type: resource.type,
       capacity: resource.capacity,
+      equipmentType: resource.equipmentType ?? "",
       location: resource.location,
       description: resource.description ?? "",
       availableFrom: resource.availableFrom,
@@ -301,7 +303,7 @@ function AdminResourcesPage() {
           <p className="eyebrow">Admin Resource Operations</p>
           <h1>Manage rooms, labs, and shared assets</h1>
           <p className="page-subtitle resource-admin-hero-copy">
-            Create new resource entries, schedule maintenance windows, and keep the campus inventory aligned with real booking conditions.
+            Create new resource entries, schedule maintenance windows, and keep rooms, equipment, and venue-style assets aligned with real booking conditions.
           </p>
         </div>
         <div className="resource-admin-live-pill">
@@ -362,7 +364,7 @@ function AdminResourcesPage() {
           title={editingResource ? "Update selected resource" : "Create a new resource entry"}
           subtitle={
             editingResource
-              ? "Adjust capacity, location, description, or operating hours for the selected inventory item."
+              ? "Adjust capacity, subtype, location, description, or operating hours for the selected inventory item."
               : "Add a fresh catalogue item with the details students and staff need before booking."
           }
         />
@@ -425,7 +427,7 @@ function AdminResourcesPage() {
               <tr>
                 <th>Name</th>
                 <th>Type</th>
-                <th>Capacity</th>
+                <th>Capacity / Subtype</th>
                 <th>Location</th>
                 <th>Availability</th>
                 <th>Status</th>
@@ -450,7 +452,9 @@ function AdminResourcesPage() {
                     </td>
                     <td>{formatLabel(resource.type)}</td>
                     <td>
-                      <span className="resource-capacity-chip">{resource.capacity} people</span>
+                      <span className="resource-capacity-chip">
+                        {getResourceSecondaryMeta(resource).value}
+                      </span>
                     </td>
                     <td>{resource.location}</td>
                     <td>{getAvailabilityRange(resource)}</td>

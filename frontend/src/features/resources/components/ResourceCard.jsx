@@ -6,12 +6,14 @@ import {
   formatLabel,
   getAvailabilityRange,
   getResourceDescriptionText,
+  getResourceSecondaryMeta,
   getResourceStatusClass,
   getResourceTypeMeta,
 } from "../resourceUi";
 
 function ResourceCard({ resource, selectedDate = "" }) {
   const { icon: ResourceIcon, tone, label } = getResourceTypeMeta(resource.type);
+  const secondaryMeta = getResourceSecondaryMeta(resource);
   const bookingDisabled = resource.permanentlyUnavailable;
   const detailsQuery = selectedDate ? `?date=${selectedDate}` : "";
   const selectedDateBlocks = resource.selectedDateBlocks || [];
@@ -79,9 +81,9 @@ function ResourceCard({ resource, selectedDate = "" }) {
         <div className="resource-meta-tile">
           <span className="resource-meta-label">
             <FiUsers />
-            Capacity
+            {secondaryMeta.label}
           </span>
-          <strong>{resource.capacity} people</strong>
+          <strong>{secondaryMeta.value}</strong>
         </div>
 
         <div className="resource-meta-tile">
