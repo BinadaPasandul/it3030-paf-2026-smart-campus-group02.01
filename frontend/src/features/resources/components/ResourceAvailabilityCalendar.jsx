@@ -23,7 +23,7 @@ function parseIsoDate(value) {
   return { year, monthIndex: month - 1, day };
 }
 
-function getCalendarAnchor(selectedDate, markedDates) {
+function getCalendarAnchor(selectedDate, markedDates, blockedDates) {
   const parsedSelectedDate = parseIsoDate(selectedDate);
   if (parsedSelectedDate) {
     return parsedSelectedDate;
@@ -32,6 +32,11 @@ function getCalendarAnchor(selectedDate, markedDates) {
   const parsedMarkedDate = parseIsoDate(markedDates[0]);
   if (parsedMarkedDate) {
     return parsedMarkedDate;
+  }
+
+  const parsedBlockedDate = parseIsoDate(blockedDates[0]);
+  if (parsedBlockedDate) {
+    return parsedBlockedDate;
   }
 
   const today = new Date();
@@ -49,12 +54,14 @@ function ResourceAvailabilityCalendar({
   onSelectDate,
   onClear,
   markedDates = [],
+  blockedDates = [],
   markedLegendLabel = "Booked dates",
+  blockedLegendLabel = "Out-of-service dates",
   helperText = "",
 }) {
   const anchor = useMemo(
-    () => getCalendarAnchor(selectedDate, markedDates),
-    [selectedDate, markedDates],
+    () => getCalendarAnchor(selectedDate, markedDates, blockedDates),
+    [selectedDate, markedDates, blockedDates],
   );
   const [visibleMonth, setVisibleMonth] = useState(() => ({
     year: anchor.year,
@@ -64,6 +71,7 @@ function ResourceAvailabilityCalendar({
   const today = new Date();
   const todayIso = toIsoDate(today.getFullYear(), today.getMonth(), today.getDate());
   const markedDateSet = useMemo(() => new Set(markedDates), [markedDates]);
+  const blockedDateSet = useMemo(() => new Set(blockedDates), [blockedDates]);
 
   const calendarCells = useMemo(() => {
     const firstDayOfMonth = new Date(visibleMonth.year, visibleMonth.monthIndex, 1);
@@ -83,9 +91,10 @@ function ResourceAvailabilityCalendar({
         isSelected: isoDate === selectedDate,
         isToday: isoDate === todayIso,
         isMarked: markedDateSet.has(isoDate),
+        isBlocked: blockedDateSet.has(isoDate),
       };
     });
-  }, [markedDateSet, selectedDate, todayIso, visibleMonth]);
+  }, [blockedDateSet, markedDateSet, selectedDate, todayIso, visibleMonth]);
 
   const monthLabel = new Date(visibleMonth.year, visibleMonth.monthIndex, 1).toLocaleDateString("en-LK", {
     month: "long",
@@ -161,6 +170,7 @@ function ResourceAvailabilityCalendar({
               cell.isSelected ? "is-selected" : "",
               cell.isToday ? "is-today" : "",
               cell.isMarked ? "is-marked" : "",
+              cell.isBlocked ? "is-blocked" : "",
             ]
               .filter(Boolean)
               .join(" ");
@@ -183,6 +193,9 @@ function ResourceAvailabilityCalendar({
       <div className="resource-calendar-legend">
         <span><i className="resource-calendar-dot resource-calendar-dot-selected" /> Selected</span>
         <span><i className="resource-calendar-dot resource-calendar-dot-today" /> Today</span>
+        {blockedDates.length > 0 ? (
+          <span><i className="resource-calendar-dot resource-calendar-dot-blocked" /> {blockedLegendLabel}</span>
+        ) : null}
         {markedDates.length > 0 ? (
           <span><i className="resource-calendar-dot resource-calendar-dot-marked" /> {markedLegendLabel}</span>
         ) : null}

@@ -794,10 +794,31 @@
   font-weight: 800;
 }
 
+.resource-calendar-day.is-blocked {
+  border-color: rgba(245, 158, 11, 0.42);
+  background: rgba(245, 158, 11, 0.16);
+}
+
+.resource-calendar-day.is-blocked span {
+  font-weight: 800;
+  color: #fde68a;
+}
+
+.resource-calendar-day.is-blocked.is-selected {
+  border-color: rgba(245, 158, 11, 0.68);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.26), rgba(99, 102, 241, 0.18));
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.14);
+}
+
 .resource-calendar-day.is-marked.is-selected {
   border-color: rgba(248, 113, 113, 0.62);
   background: linear-gradient(135deg, rgba(248, 113, 113, 0.24), rgba(99, 102, 241, 0.2));
   box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.14);
+}
+
+.resource-calendar-day.is-blocked.is-marked {
+  border-color: rgba(245, 158, 11, 0.58);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(248, 113, 113, 0.18));
 }
 
 .resource-calendar-day-empty {
@@ -834,6 +855,10 @@
 
 .resource-calendar-dot-marked {
   background: #f87171;
+}
+
+.resource-calendar-dot-blocked {
+  background: #f59e0b;
 }
 
 .resource-calendar-helper {

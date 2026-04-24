@@ -109,6 +109,7 @@ function ResourceDetailsPage() {
   const selectedDateBookings = resource.selectedDateBookings || [];
   const blocksToShow = selectedDate ? selectedDateBlocks : resource.scheduledBlocks || [];
   const bookedDates = resource.bookedDates || [];
+  const blockedDates = [...new Set((resource.scheduledBlocks || []).map((block) => block.blockDate).filter(Boolean))];
   const selectedDateNoteTone = resource.availableOnSelectedDate
     ? "resource-date-focus-card-open"
     : "resource-date-focus-card-blocked";
@@ -332,11 +333,13 @@ function ResourceDetailsPage() {
             onSelectDate={handleCalendarSelect}
             onClear={handleCalendarClear}
             markedDates={bookedDates}
+            blockedDates={blockedDates}
             markedLegendLabel="Booked dates"
+            blockedLegendLabel="Scheduled out-of-service"
             helperText={
               dateSyncing
                 ? "Updating booked slots and date-specific availability..."
-                : "Marked dates indicate at least one approved booking already exists for this resource."
+                : "Orange dates have scheduled out-of-service windows. Red dates have approved bookings."
             }
           />
 
