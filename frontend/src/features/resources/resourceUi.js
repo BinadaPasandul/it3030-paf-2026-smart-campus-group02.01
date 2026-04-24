@@ -16,6 +16,20 @@ export const RESOURCE_TYPES = [
 ];
 
 export const RESOURCE_STATUSES = ["ACTIVE", "OUT_OF_SERVICE"];
+export const SUPPORTED_BUILDING_CODE_PREFIXES = "EN, BM, G, F, A, or B";
+export const CAMPUS_BUILDINGS = [
+  "New Building",
+  "Main Building",
+  "Engineering Building",
+  "Business Management Building",
+];
+
+const BUILDING_CODE_RULES = [
+  { prefixes: ["EN"], building: "Engineering Building" },
+  { prefixes: ["BM"], building: "Business Management Building" },
+  { prefixes: ["G", "F"], building: "New Building" },
+  { prefixes: ["A", "B"], building: "Main Building" },
+];
 
 const RESOURCE_TYPE_META = {
   LECTURE_HALL: {
@@ -47,6 +61,24 @@ const RESOURCE_TYPE_META = {
 
 export function formatLabel(value = "") {
   return value ? value.replaceAll("_", " ") : "Not available";
+}
+
+export function getExpectedBuildingForCode(code = "") {
+  const normalizedCode = code.trim().toUpperCase();
+
+  if (!normalizedCode) {
+    return "";
+  }
+
+  const matchedRule = BUILDING_CODE_RULES.find((rule) =>
+    rule.prefixes.some((prefix) => normalizedCode.startsWith(prefix)),
+  );
+
+  return matchedRule ? matchedRule.building : "";
+}
+
+export function usesAutomaticBuildingLocation(type = "") {
+  return type === "LAB" || type === "LECTURE_HALL";
 }
 
 export function formatTimeLabel(value = "") {
