@@ -1,5 +1,6 @@
 package com.smartcampus.hub.resource.dto;
 
+import com.smartcampus.hub.resource.entity.EquipmentType;
 import com.smartcampus.hub.resource.entity.ResourceStatus;
 import com.smartcampus.hub.resource.entity.ResourceType;
 
@@ -14,6 +15,7 @@ public class ResourceResponse {
     private String name;
     private String code;
     private ResourceType type;
+    private EquipmentType equipmentType;
     private Integer capacity;
     private String location;
     private String description;
@@ -70,6 +72,14 @@ public class ResourceResponse {
 
     public void setType(ResourceType type) {
         this.type = type;
+    }
+
+    public EquipmentType getEquipmentType() {
+        return equipmentType;
+    }
+
+    public void setEquipmentType(EquipmentType equipmentType) {
+        this.equipmentType = equipmentType;
     }
 
     public Integer getCapacity() {
