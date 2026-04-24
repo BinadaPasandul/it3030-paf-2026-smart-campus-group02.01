@@ -128,6 +128,50 @@ public class AuthService {
         return Map.of("message", "A new verification code has been sent to your email.");
     }
 
+    public Map<String, String> requestPasswordReset(String email) {
+        User user;
+        try {
+            user = userService.findUserByEmail(email);
+        } catch (Exception e) {
+            // Security: Prevent email enumeration
+            return Map.of("message", "If an account with that email exists, a password reset code has been sent.");
+        }
+
+        if (!"LOCAL".equals(user.getProvider()) && user.getProvider() != null) {
+            // Google users do not have a local password to reset
+            return Map.of("message", "If an account with that email exists, a password reset code has been sent.");
+        }
+
+        String code = generateVerificationCode();
+        user.setPasswordResetCode(code);
+        user.setPasswordResetExpiry(LocalDateTime.now().plusMinutes(15));
+        userService.saveUser(user);
+
+        emailService.sendPasswordResetEmail(user.getEmail(), code, user.getFullName());
+
+        return Map.of("message", "If an account with that email exists, a password reset code has been sent.");
+    }
+
+    public Map<String, String> resetPassword(String email, String code, String newPassword) {
+        User user = userService.findUserByEmail(email);
+
+        if (user.getPasswordResetCode() == null || !user.getPasswordResetCode().equals(code)) {
+            throw new IllegalArgumentException("Invalid password reset code.");
+        }
+
+        if (user.getPasswordResetExpiry() != null && user.getPasswordResetExpiry().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Password reset code has expired. Please request a new one.");
+        }
+
+        userService.updatePassword(user.getEmail(), newPassword);
+
+        user.setPasswordResetCode(null);
+        user.setPasswordResetExpiry(null);
+        userService.saveUser(user);
+
+        return Map.of("message", "Your password has been successfully reset. You can now log in.");
+    }
+
     public CurrentUserResponse completeProfile(Authentication authentication, CompleteProfileRequest request) {
         String email = extractEmail(authentication);
         User user = userService.updateOwnProfile(email, request);

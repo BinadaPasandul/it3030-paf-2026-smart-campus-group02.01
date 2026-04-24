@@ -62,6 +62,16 @@ export const AuthProvider = ({ children }) => {
     return response.data;
   };
 
+  const requestPasswordReset = async (email) => {
+    const response = await api.post("/auth/forgot-password", { email });
+    return response.data;
+  };
+
+  const resetPassword = async (payload) => {
+    const response = await api.post("/auth/reset-password", payload);
+    return response.data;
+  };
+
   const loginWithGoogle = () => {
     window.location.href = GOOGLE_LOGIN_URL;
   };
@@ -108,6 +118,8 @@ export const AuthProvider = ({ children }) => {
         loginWithCredentials,
         registerUser,
         completeProfile,
+        requestPasswordReset,
+        resetPassword,
         loginWithGoogle,
         logout,
         getHomePathForUser,
