@@ -25,8 +25,8 @@ function AppRoutes() {
       <Route element={<MainLayout />}>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-        <Route path="/" element={<HomePage />} />
-        <Route path="/home" element={<HomePage />} />
+        <Route path="/" element={<ResourceListPage />} />
+        <Route path="/home" element={<ResourceListPage />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
         <Route
@@ -83,23 +83,8 @@ function AppRoutes() {
           }
         />
 
-        <Route
-          path="/resources"
-          element={
-            <ProtectedRoute>
-              <ResourceListPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/resources/:id"
-          element={
-            <ProtectedRoute>
-              <ResourceDetailsPage />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/resources" element={<ResourceListPage />} />
+        <Route path="/resources/:id" element={<ResourceDetailsPage />} />
 
         <Route
           path="/admin/resources"

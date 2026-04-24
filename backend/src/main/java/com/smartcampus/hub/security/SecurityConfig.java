@@ -80,6 +80,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/notifications/**").authenticated()
                         // Admin-only broadcast
                         .requestMatchers(HttpMethod.POST, "/api/admin/notifications/**").hasRole("ADMIN")
+                        // Public resource viewing
+                        .requestMatchers(HttpMethod.GET, "/api/resources/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2

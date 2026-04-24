@@ -104,7 +104,7 @@ public class BookingService {
         // Notify the user their booking request was received and is pending review
         notificationService.sendNotification(
                 user.getId(),
-                "📋 Your booking request for \"" + resource.getName() + "\" on " + request.getBookingDate() +
+                "Your booking request for \"" + resource.getName() + "\" on " + request.getBookingDate() +
                 " has been submitted and is awaiting admin approval.",
                 NotificationType.REMINDER_PENDING_BOOKING,
                 savedBooking.getId(),
@@ -187,7 +187,7 @@ public class BookingService {
         if (reviewDTO.getStatus() == BookingStatus.APPROVED) {
             notificationService.sendNotificationWithPriority(
                     ownerId,
-                    "✅ Your booking for \"" + resource + "\" on " + date + " has been APPROVED.",
+                    "Your booking for \"" + resource + "\" on " + date + " has been APPROVED.",
                     NotificationType.BOOKING_APPROVED,
                     savedBooking.getId(),
                     "BOOKING",
@@ -199,7 +199,7 @@ public class BookingService {
                     : "";
             notificationService.sendNotificationWithPriority(
                     ownerId,
-                    "❌ Your booking for \"" + resource + "\" on " + date + " has been REJECTED." + reason,
+                    "Your booking for \"" + resource + "\" on " + date + " has been REJECTED." + reason,
                     NotificationType.BOOKING_REJECTED,
                     savedBooking.getId(),
                     "BOOKING",
@@ -231,7 +231,7 @@ public class BookingService {
 
         notificationService.sendNotification(
                 user.getId(),
-                "🚫 Your booking for \"" + saved.getResource().getName() + "\" on " + saved.getBookingDate() +
+                "Your booking for \"" + saved.getResource().getName() + "\" on " + saved.getBookingDate() +
                 " has been cancelled.",
                 NotificationType.BOOKING_CANCELLED,
                 saved.getId(),
