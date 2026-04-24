@@ -17,36 +17,44 @@ import com.smartcampus.hub.resource.repository.ResourceRepository;
 import com.smartcampus.hub.resource.service.ResourceBlockService;
 import com.smartcampus.hub.user.entity.User;
 import com.smartcampus.hub.user.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.security.access.AccessDeniedException;
-
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @SuppressWarnings("null")
 public class BookingService {
 
+    private static final String NO_SHOW_AUTO_CANCELLATION_REASON =
+            "Automatically cancelled because no check-in was recorded within 15 minutes of the booking start time.";
+
     private final BookingRepository bookingRepository;
     private final ResourceRepository resourceRepository;
     private final UserRepository userRepository;
     private final ResourceBlockService resourceBlockService;
-    // @Lazy prevents circular dependency: NotificationService -> UserRepository <- BookingService
+
     private NotificationService notificationService;
+
+    @Value("${app.booking.check-in-grace-minutes:15}")
+    private long checkInGraceMinutes;
 
     public BookingService(BookingRepository bookingRepository,
                           ResourceRepository resourceRepository,
                           UserRepository userRepository,
                           ResourceBlockService resourceBlockService) {
-        this.bookingRepository  = bookingRepository;
+        this.bookingRepository = bookingRepository;
         this.resourceRepository = resourceRepository;
-        this.userRepository     = userRepository;
+        this.userRepository = userRepository;
         this.resourceBlockService = resourceBlockService;
     }
 
@@ -74,10 +82,10 @@ public class BookingService {
         LocalTime availableFrom = resource.getAvailableFrom() != null ? resource.getAvailableFrom() : LocalTime.MIN;
         LocalTime availableTo = resource.getAvailableTo() != null ? resource.getAvailableTo() : LocalTime.MAX;
 
-        if (request.getStartTime().isBefore(availableFrom) || 
-            request.getEndTime().isAfter(availableTo)) {
-            throw new IllegalArgumentException("Booking times must be within the resource's operating hours (" 
-                + availableFrom + " to " + availableTo + ").");
+        if (request.getStartTime().isBefore(availableFrom) || request.getEndTime().isAfter(availableTo)) {
+            throw new IllegalArgumentException(
+                    "Booking times must be within the resource's operating hours (" + availableFrom + " to " + availableTo + ")."
+            );
         }
 
         checkConflicts(resource.getId(), request.getBookingDate(), request.getStartTime(), request.getEndTime(), null);
@@ -87,7 +95,6 @@ public class BookingService {
                 request.getStartTime(),
                 request.getEndTime()
         );
-
 
         Booking booking = new Booking();
         booking.setResource(resource);
@@ -101,7 +108,6 @@ public class BookingService {
 
         Booking savedBooking = bookingRepository.save(booking);
 
-        // Notify the user their booking request was received and is pending review
         notificationService.sendNotification(
                 user.getId(),
                 "Your booking request for \"" + resource.getName() + "\" on " + request.getBookingDate() +
@@ -111,7 +117,6 @@ public class BookingService {
                 "BOOKING"
         );
 
-
         return mapToDTO(savedBooking);
     }
 
@@ -119,6 +124,7 @@ public class BookingService {
     public List<BookingResponseDTO> getUserBookings(String userEmail) {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
         return bookingRepository.findByUserId(user.getId()).stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
@@ -128,23 +134,21 @@ public class BookingService {
     public BookingResponseDTO getBookingById(Long id, String userEmail) {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
-        
+
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         if (!booking.getUser().getId().equals(user.getId()) && !user.getRole().name().equals("ADMIN")) {
             throw new AccessDeniedException("Not authorized to view this booking");
         }
-        
+
         return mapToDTO(booking);
     }
 
     @Transactional(readOnly = true)
     public List<BookingResponseDTO> getAllBookings(BookingStatus status) {
-        List<Booking> bookings = (status != null) ? 
-            bookingRepository.findByStatus(status) : 
-            bookingRepository.findAll();
-            
+        List<Booking> bookings = status != null ? bookingRepository.findByStatus(status) : bookingRepository.findAll();
+
         return bookings.stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
@@ -154,7 +158,7 @@ public class BookingService {
     public BookingResponseDTO reviewBooking(Long id, BookingReviewDTO reviewDTO, String adminEmail) {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
-        
+
         User admin = userRepository.findByEmail(adminEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("Admin not found"));
 
@@ -163,14 +167,20 @@ public class BookingService {
         }
 
         if (reviewDTO.getStatus() == BookingStatus.APPROVED) {
-            checkConflicts(booking.getResource().getId(), booking.getBookingDate(), 
-                          booking.getStartTime(), booking.getEndTime(), booking.getId());
+            checkConflicts(
+                    booking.getResource().getId(),
+                    booking.getBookingDate(),
+                    booking.getStartTime(),
+                    booking.getEndTime(),
+                    booking.getId()
+            );
             resourceBlockService.ensureNoBlockConflict(
                     booking.getResource().getId(),
                     booking.getBookingDate(),
                     booking.getStartTime(),
                     booking.getEndTime()
             );
+            booking.setCheckedInAt(null);
         }
 
         booking.setStatus(reviewDTO.getStatus());
@@ -179,27 +189,26 @@ public class BookingService {
 
         Booking savedBooking = bookingRepository.save(booking);
 
-        // Notify the booking owner of the admin decision
-        Long ownerId    = savedBooking.getUser().getId();
-        String resource = savedBooking.getResource().getName();
-        String date     = savedBooking.getBookingDate().toString();
+        Long ownerId = savedBooking.getUser().getId();
+        String resourceName = savedBooking.getResource().getName();
+        String bookingDate = savedBooking.getBookingDate().toString();
 
         if (reviewDTO.getStatus() == BookingStatus.APPROVED) {
             notificationService.sendNotificationWithPriority(
                     ownerId,
-                    "Your booking for \"" + resource + "\" on " + date + " has been APPROVED.",
+                    "Your booking for \"" + resourceName + "\" on " + bookingDate + " has been APPROVED.",
                     NotificationType.BOOKING_APPROVED,
                     savedBooking.getId(),
                     "BOOKING",
                     "HIGH"
             );
         } else if (reviewDTO.getStatus() == BookingStatus.REJECTED) {
-            String reason = (reviewDTO.getReason() != null && !reviewDTO.getReason().isBlank())
+            String reason = reviewDTO.getReason() != null && !reviewDTO.getReason().isBlank()
                     ? " Reason: " + reviewDTO.getReason()
                     : "";
             notificationService.sendNotificationWithPriority(
                     ownerId,
-                    "Your booking for \"" + resource + "\" on " + date + " has been REJECTED." + reason,
+                    "Your booking for \"" + resourceName + "\" on " + bookingDate + " has been REJECTED." + reason,
                     NotificationType.BOOKING_REJECTED,
                     savedBooking.getId(),
                     "BOOKING",
@@ -214,7 +223,7 @@ public class BookingService {
     public BookingResponseDTO cancelBooking(Long id, String userEmail) {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
-                
+
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
@@ -227,25 +236,66 @@ public class BookingService {
         }
 
         booking.setStatus(BookingStatus.CANCELLED);
-        Booking saved = bookingRepository.save(booking);
+        Booking savedBooking = bookingRepository.save(booking);
 
         notificationService.sendNotification(
                 user.getId(),
-                "Your booking for \"" + saved.getResource().getName() + "\" on " + saved.getBookingDate() +
-                " has been cancelled.",
+                "Your booking for \"" + savedBooking.getResource().getName() + "\" on " + savedBooking.getBookingDate()
+                        + " has been cancelled.",
                 NotificationType.BOOKING_CANCELLED,
-                saved.getId(),
+                savedBooking.getId(),
                 "BOOKING"
         );
 
-        return mapToDTO(saved);
+        return mapToDTO(savedBooking);
+    }
+
+    @Transactional
+    public BookingResponseDTO checkInBooking(Long id, String userEmail) {
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (!booking.getUser().getId().equals(user.getId())) {
+            throw new AccessDeniedException("Not authorized to check in for this booking");
+        }
+
+        if (booking.getStatus() == BookingStatus.CANCELLED && isAutoCancelled(booking)) {
+            throw new IllegalStateException("This booking was already auto-cancelled because no check-in was recorded in time.");
+        }
+
+        if (booking.getStatus() != BookingStatus.APPROVED) {
+            throw new IllegalStateException("Only APPROVED bookings can be checked in");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime checkInWindowStart = getCheckInWindowStart(booking);
+        LocalDateTime checkInDeadline = getCheckInDeadline(booking);
+
+        if (now.isBefore(checkInWindowStart)) {
+            throw new IllegalStateException(
+                    "Check-in opens at " + checkInWindowStart.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) + "."
+            );
+        }
+
+        if (now.isAfter(checkInDeadline)) {
+            autoCancelNoShowBooking(booking);
+            throw new IllegalStateException("Check-in window expired, so this booking was automatically cancelled as a no-show.");
+        }
+
+        booking.setStatus(BookingStatus.CHECKED_IN);
+        booking.setCheckedInAt(now);
+
+        return mapToDTO(bookingRepository.save(booking));
     }
 
     @Transactional
     public void deleteBooking(Long id, String userEmail) {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
-                
+
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
@@ -260,6 +310,18 @@ public class BookingService {
         bookingRepository.delete(booking);
     }
 
+    @Scheduled(fixedDelayString = "${app.booking.ghost-detection-interval-ms:60000}")
+    @Transactional
+    public void autoCancelGhostBookings() {
+        LocalDateTime cutoff = LocalDateTime.now().minusMinutes(checkInGraceMinutes);
+        List<Booking> overdueBookings = bookingRepository.findApprovedBookingsEligibleForAutoCancellation(
+                cutoff.toLocalDate(),
+                cutoff.toLocalTime()
+        );
+
+        overdueBookings.forEach(this::autoCancelNoShowBooking);
+    }
+
     private void checkConflicts(Long resourceId, LocalDate date, LocalTime startTime, LocalTime endTime, Long excludeId) {
         List<Booking> conflicts = bookingRepository.findApprovedConflictingBookings(
                 resourceId,
@@ -268,14 +330,15 @@ public class BookingService {
                 endTime,
                 excludeId
         );
+
         if (!conflicts.isEmpty()) {
             Booking conflict = conflicts.get(0);
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
             String message = String.format(
-                "Cannot complete this request because the resource already has an approved booking on %s from %s to %s.",
-                conflict.getBookingDate(),
-                conflict.getStartTime().format(formatter),
-                conflict.getEndTime().format(formatter)
+                    "Cannot complete this request because the resource already has a confirmed booking on %s from %s to %s.",
+                    conflict.getBookingDate(),
+                    conflict.getStartTime().format(formatter),
+                    conflict.getEndTime().format(formatter)
             );
             throw new BookingConflictException(message);
         }
@@ -304,8 +367,63 @@ public class BookingService {
         dto.setResourceBaseStatus(booking.getResource().getStatus());
         dto.setResourceEffectiveStatus(effectiveStatus);
         dto.setResourcePermanentlyUnavailable(booking.getResource().getStatus() != ResourceStatus.ACTIVE);
+        dto.setCheckInWindowStartsAt(getCheckInWindowStart(booking));
+        dto.setCheckInDeadlineAt(getCheckInDeadline(booking));
+        dto.setCheckedInAt(booking.getCheckedInAt());
+        dto.setCheckInEligible(isCheckInEligible(booking, LocalDateTime.now()));
+        dto.setAutoCancelled(isAutoCancelled(booking));
         dto.setCreatedAt(booking.getCreatedAt());
         dto.setUpdatedAt(booking.getUpdatedAt());
         return dto;
+    }
+
+    private Booking autoCancelNoShowBooking(Booking booking) {
+        if (booking.getStatus() != BookingStatus.APPROVED) {
+            return booking;
+        }
+
+        booking.setStatus(BookingStatus.CANCELLED);
+        booking.setAdminReason(NO_SHOW_AUTO_CANCELLATION_REASON);
+
+        Booking savedBooking = bookingRepository.save(booking);
+
+        notificationService.sendNotificationWithPriority(
+                savedBooking.getUser().getId(),
+                "Your booking for \"" + savedBooking.getResource().getName() + "\" on " + savedBooking.getBookingDate()
+                        + " was automatically cancelled because no check-in was recorded within 15 minutes of the start time.",
+                NotificationType.BOOKING_CANCELLED,
+                savedBooking.getId(),
+                "BOOKING",
+                "HIGH"
+        );
+
+        return savedBooking;
+    }
+
+    private boolean isCheckInEligible(Booking booking, LocalDateTime now) {
+        if (booking.getStatus() != BookingStatus.APPROVED) {
+            return false;
+        }
+
+        LocalDateTime windowStart = getCheckInWindowStart(booking);
+        LocalDateTime deadline = getCheckInDeadline(booking);
+        return !now.isBefore(windowStart) && !now.isAfter(deadline);
+    }
+
+    private LocalDateTime getCheckInWindowStart(Booking booking) {
+        return getBookingStartDateTime(booking).minusMinutes(checkInGraceMinutes);
+    }
+
+    private LocalDateTime getCheckInDeadline(Booking booking) {
+        return getBookingStartDateTime(booking).plusMinutes(checkInGraceMinutes);
+    }
+
+    private LocalDateTime getBookingStartDateTime(Booking booking) {
+        return LocalDateTime.of(booking.getBookingDate(), booking.getStartTime());
+    }
+
+    private boolean isAutoCancelled(Booking booking) {
+        return booking.getStatus() == BookingStatus.CANCELLED
+                && NO_SHOW_AUTO_CANCELLATION_REASON.equals(booking.getAdminReason());
     }
 }

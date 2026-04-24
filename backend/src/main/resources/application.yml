@@ -47,6 +47,9 @@ server:
 app:
   upload:
     dir: uploads
+  booking:
+    check-in-grace-minutes: ${BOOKING_CHECK_IN_GRACE_MINUTES:15}
+    ghost-detection-interval-ms: ${BOOKING_GHOST_DETECTION_INTERVAL_MS:60000}
   seed-admin:
     enabled: ${SEED_ADMIN_ENABLED:true}
     full-name: ${SEED_ADMIN_FULL_NAME:System Administrator}

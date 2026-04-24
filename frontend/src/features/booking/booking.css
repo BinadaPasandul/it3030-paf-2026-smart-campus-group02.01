@@ -376,3 +376,19 @@
   border-color: rgba(239, 68, 68, 0.26);
   background: rgba(239, 68, 68, 0.12);
 }
+
+.booking-warning-banner-info {
+  border-color: rgba(59, 130, 246, 0.26);
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.booking-warning-banner-success {
+  border-color: rgba(34, 197, 94, 0.26);
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.booking-status-checked-in {
+  background: rgba(34, 197, 94, 0.18);
+  color: #bbf7d0;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}

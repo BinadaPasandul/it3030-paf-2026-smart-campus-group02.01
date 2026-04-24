@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.Collection;
 import java.util.List;
 
 @Repository
@@ -23,7 +24,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Query("SELECT b FROM Booking b WHERE b.resource.id = :resourceId " +
            "AND b.bookingDate = :date " +
            "AND (:excludeId IS NULL OR b.id <> :excludeId) " +
-           "AND b.status = 'APPROVED' " +
+           "AND b.status IN ('APPROVED', 'CHECKED_IN') " +
            "AND ((b.startTime < :endTime AND b.endTime > :startTime))")
     List<Booking> findApprovedConflictingBookings(Long resourceId, LocalDate date, LocalTime startTime, LocalTime endTime, Long excludeId);
 
@@ -31,7 +32,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             SELECT DISTINCT b.bookingDate
             FROM Booking b
             WHERE b.resource.id = :resourceId
-              AND b.status = 'APPROVED'
+              AND b.status IN ('APPROVED', 'CHECKED_IN')
             ORDER BY b.bookingDate ASC
             """)
     List<LocalDate> findAllApprovedBookedDatesByResourceId(Long resourceId);
@@ -40,15 +41,27 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             SELECT DISTINCT b.bookingDate
             FROM Booking b
             WHERE b.resource.id = :resourceId
-              AND b.status = 'APPROVED'
+              AND b.status IN ('APPROVED', 'CHECKED_IN')
               AND b.bookingDate >= :fromDate
             ORDER BY b.bookingDate ASC
             """)
     List<LocalDate> findApprovedBookedDatesByResourceId(Long resourceId, LocalDate fromDate);
 
-    List<Booking> findByResourceIdAndBookingDateAndStatusOrderByStartTimeAsc(
+    List<Booking> findByResourceIdAndBookingDateAndStatusInOrderByStartTimeAsc(
             Long resourceId,
             LocalDate bookingDate,
-            BookingStatus status
+            Collection<BookingStatus> statuses
     );
+
+    @Query("""
+            SELECT b
+            FROM Booking b
+            WHERE b.status = 'APPROVED'
+              AND (
+                    b.bookingDate < :cutoffDate
+                    OR (b.bookingDate = :cutoffDate AND b.startTime <= :cutoffTime)
+                  )
+            ORDER BY b.bookingDate ASC, b.startTime ASC
+            """)
+    List<Booking> findApprovedBookingsEligibleForAutoCancellation(LocalDate cutoffDate, LocalTime cutoffTime);
 }

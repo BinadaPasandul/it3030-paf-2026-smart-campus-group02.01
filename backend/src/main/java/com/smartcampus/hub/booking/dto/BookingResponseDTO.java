@@ -23,6 +23,11 @@ public class BookingResponseDTO {
     private ResourceStatus resourceBaseStatus;
     private ResourceStatus resourceEffectiveStatus;
     private boolean resourcePermanentlyUnavailable;
+    private LocalDateTime checkInWindowStartsAt;
+    private LocalDateTime checkInDeadlineAt;
+    private LocalDateTime checkedInAt;
+    private boolean checkInEligible;
+    private boolean autoCancelled;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -144,6 +149,46 @@ public class BookingResponseDTO {
 
     public void setResourcePermanentlyUnavailable(boolean resourcePermanentlyUnavailable) {
         this.resourcePermanentlyUnavailable = resourcePermanentlyUnavailable;
+    }
+
+    public LocalDateTime getCheckInWindowStartsAt() {
+        return checkInWindowStartsAt;
+    }
+
+    public void setCheckInWindowStartsAt(LocalDateTime checkInWindowStartsAt) {
+        this.checkInWindowStartsAt = checkInWindowStartsAt;
+    }
+
+    public LocalDateTime getCheckInDeadlineAt() {
+        return checkInDeadlineAt;
+    }
+
+    public void setCheckInDeadlineAt(LocalDateTime checkInDeadlineAt) {
+        this.checkInDeadlineAt = checkInDeadlineAt;
+    }
+
+    public LocalDateTime getCheckedInAt() {
+        return checkedInAt;
+    }
+
+    public void setCheckedInAt(LocalDateTime checkedInAt) {
+        this.checkedInAt = checkedInAt;
+    }
+
+    public boolean isCheckInEligible() {
+        return checkInEligible;
+    }
+
+    public void setCheckInEligible(boolean checkInEligible) {
+        this.checkInEligible = checkInEligible;
+    }
+
+    public boolean isAutoCancelled() {
+        return autoCancelled;
+    }
+
+    public void setAutoCancelled(boolean autoCancelled) {
+        this.autoCancelled = autoCancelled;
     }
 
     public LocalDateTime getCreatedAt() {

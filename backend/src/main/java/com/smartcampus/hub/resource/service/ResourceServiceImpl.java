@@ -306,10 +306,10 @@ public class ResourceServiceImpl implements ResourceService {
 
         List<ResourceBlockResponse> selectedDateBlocks = resourceBlockService.getBlocksForDate(resource.getId(), selectedDate);
         List<ResourceBookingSlotResponse> selectedDateBookings = bookingRepository
-                .findByResourceIdAndBookingDateAndStatusOrderByStartTimeAsc(
+                .findByResourceIdAndBookingDateAndStatusInOrderByStartTimeAsc(
                         resource.getId(),
                         selectedDate,
-                        BookingStatus.APPROVED
+                        List.of(BookingStatus.APPROVED, BookingStatus.CHECKED_IN)
                 )
                 .stream()
                 .map(this::mapToSelectedDateBooking)

@@ -66,6 +66,11 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.cancelBooking(id, getCurrentUserEmail()));
     }
 
+    @PatchMapping("/{id}/check-in")
+    public ResponseEntity<BookingResponseDTO> checkInBooking(@PathVariable Long id) {
+        return ResponseEntity.ok(bookingService.checkInBooking(id, getCurrentUserEmail()));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteBooking(@PathVariable Long id) {
         bookingService.deleteBooking(id, getCurrentUserEmail());
