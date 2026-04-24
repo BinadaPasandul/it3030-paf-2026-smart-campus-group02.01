@@ -75,6 +75,18 @@ public class ResourceBlockServiceImpl implements ResourceBlockService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<ResourceBlockResponse> getBlocksForDate(Long resourceId, LocalDate date) {
+        getResourceOrThrow(resourceId);
+
+        return resourceBlockRepository
+                .findBlocksByResourceIdAndDate(resourceId, date)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    @Override
     public void deleteResourceBlock(Long resourceId, Long blockId) {
         ResourceBlock block = resourceBlockRepository.findByIdAndResourceId(blockId, resourceId)
                 .orElseThrow(() -> new ResourceNotFoundException("Scheduled block not found"));

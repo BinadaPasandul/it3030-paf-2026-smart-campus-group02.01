@@ -13,6 +13,8 @@ public interface ResourceBlockService {
 
     List<ResourceBlockResponse> getCurrentAndUpcomingBlocks(Long resourceId);
 
+    List<ResourceBlockResponse> getBlocksForDate(Long resourceId, LocalDate date);
+
     void deleteResourceBlock(Long resourceId, Long blockId);
 
     void deleteBlocksForResource(Long resourceId);

@@ -6,6 +6,7 @@ import com.smartcampus.hub.resource.dto.UpdateResourceRequest;
 import com.smartcampus.hub.resource.entity.ResourceStatus;
 import com.smartcampus.hub.resource.entity.ResourceType;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public interface ResourceService {
@@ -16,10 +17,11 @@ public interface ResourceService {
             ResourceType type,
             String location,
             Integer minCapacity,
-            ResourceStatus status
+            ResourceStatus status,
+            LocalDate date
     );
 
-    ResourceResponse getResourceById(Long id);
+    ResourceResponse getResourceById(Long id, LocalDate date);
 
     ResourceResponse updateResource(Long id, UpdateResourceRequest request);
 

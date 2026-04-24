@@ -3,6 +3,7 @@ package com.smartcampus.hub.resource.dto;
 import com.smartcampus.hub.resource.entity.ResourceStatus;
 import com.smartcampus.hub.resource.entity.ResourceType;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
@@ -24,6 +25,13 @@ public class ResourceResponse {
     private int scheduledBlockCount;
     private ResourceBlockResponse nextScheduledBlock;
     private List<ResourceBlockResponse> scheduledBlocks;
+    private LocalDate selectedDate;
+    private Boolean availableOnSelectedDate;
+    private boolean blockedAllDayOnSelectedDate;
+    private String selectedDateAvailabilityMessage;
+    private List<ResourceBlockResponse> selectedDateBlocks;
+    private List<ResourceBookingSlotResponse> selectedDateBookings;
+    private List<LocalDate> bookedDates;
     private LocalTime availableFrom;
     private LocalTime availableTo;
     private LocalDateTime createdAt;
@@ -150,6 +158,62 @@ public class ResourceResponse {
 
     public void setScheduledBlocks(List<ResourceBlockResponse> scheduledBlocks) {
         this.scheduledBlocks = scheduledBlocks;
+    }
+
+    public LocalDate getSelectedDate() {
+        return selectedDate;
+    }
+
+    public void setSelectedDate(LocalDate selectedDate) {
+        this.selectedDate = selectedDate;
+    }
+
+    public Boolean getAvailableOnSelectedDate() {
+        return availableOnSelectedDate;
+    }
+
+    public void setAvailableOnSelectedDate(Boolean availableOnSelectedDate) {
+        this.availableOnSelectedDate = availableOnSelectedDate;
+    }
+
+    public boolean isBlockedAllDayOnSelectedDate() {
+        return blockedAllDayOnSelectedDate;
+    }
+
+    public void setBlockedAllDayOnSelectedDate(boolean blockedAllDayOnSelectedDate) {
+        this.blockedAllDayOnSelectedDate = blockedAllDayOnSelectedDate;
+    }
+
+    public String getSelectedDateAvailabilityMessage() {
+        return selectedDateAvailabilityMessage;
+    }
+
+    public void setSelectedDateAvailabilityMessage(String selectedDateAvailabilityMessage) {
+        this.selectedDateAvailabilityMessage = selectedDateAvailabilityMessage;
+    }
+
+    public List<ResourceBlockResponse> getSelectedDateBlocks() {
+        return selectedDateBlocks;
+    }
+
+    public void setSelectedDateBlocks(List<ResourceBlockResponse> selectedDateBlocks) {
+        this.selectedDateBlocks = selectedDateBlocks;
+    }
+
+    public List<ResourceBookingSlotResponse> getSelectedDateBookings() {
+        return selectedDateBookings;
+    }
+
+    public void setSelectedDateBookings(List<ResourceBookingSlotResponse> selectedDateBookings) {
+        this.selectedDateBookings = selectedDateBookings;
+    }
+
+    public List<LocalDate> getBookedDates() {
+        return bookedDates;
+    }
+
+    public void setBookedDates(List<LocalDate> bookedDates) {
+        this.bookedDates = bookedDates;
     }
 
     public LocalTime getAvailableFrom() {
