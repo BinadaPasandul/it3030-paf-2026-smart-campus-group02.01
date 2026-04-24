@@ -1,24 +1,47 @@
 import { useEffect, useMemo, useState } from "react";
-import { FiActivity, FiCheckCircle, FiDatabase, FiLayers, FiMapPin, FiRefreshCw } from "react-icons/fi";
+import {
+  FiActivity,
+  FiCalendar,
+  FiCheckCircle,
+  FiDatabase,
+  FiLayers,
+  FiMapPin,
+  FiRefreshCw,
+} from "react-icons/fi";
 import {
   createResource,
+  createResourceBlock,
   deleteResource,
+  deleteResourceBlock,
   getAllResources,
+  getResourceBlocks,
   updateResource,
   updateResourceStatus,
 } from "../../../api/resourceApi";
 import { getApiErrorMessage } from "../../../api/getApiErrorMessage";
+import ResourceBlockFormModal from "../components/ResourceBlockFormModal";
 import ResourceForm from "../components/ResourceForm";
 import {
+  formatBlockWindow,
   formatLabel,
   getAvailabilityRange,
+  getResourceSecondaryMeta,
   getResourceStatusClass,
 } from "../resourceUi";
+import ConfirmActionModal from "../components/ConfirmActionModal";
 import "../resources.css";
 
 function AdminResourcesPage() {
   const [resources, setResources] = useState([]);
   const [editingResource, setEditingResource] = useState(null);
+  const [resourceForBlocking, setResourceForBlocking] = useState(null);
+  const [resourceBlocks, setResourceBlocks] = useState([]);
+  const [loadingBlocks, setLoadingBlocks] = useState(false);
+  const [submittingBlock, setSubmittingBlock] = useState(false);
+  const [deletingBlockId, setDeletingBlockId] = useState(null);
+  const [confirmBusy, setConfirmBusy] = useState(false);
+  const [blockError, setBlockError] = useState("");
+  const [confirmDialog, setConfirmDialog] = useState(null);
   const [formResetKey, setFormResetKey] = useState(0);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -33,8 +56,20 @@ function AdminResourcesPage() {
     }
   };
 
+  const loadBlocksForResource = async (resourceId) => {
+    try {
+      setLoadingBlocks(true);
+      const data = await getResourceBlocks(resourceId);
+      setResourceBlocks(data);
+      setBlockError("");
+    } catch (requestError) {
+      setBlockError(getApiErrorMessage(requestError, "Failed to load scheduled windows."));
+    } finally {
+      setLoadingBlocks(false);
+    }
+  };
+
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadResources();
   }, []);
 
@@ -69,39 +104,77 @@ function AdminResourcesPage() {
     }
   };
 
-  const handleToggleStatus = async (resource) => {
-    try {
-      setMessage("");
-      setError("");
-
-      const newStatus =
-        resource.status === "ACTIVE" ? "OUT_OF_SERVICE" : "ACTIVE";
-
-      await updateResourceStatus(resource.id, newStatus);
-      setMessage("Resource status updated.");
-      await loadResources();
-    } catch (requestError) {
-      setError(getApiErrorMessage(requestError, "Failed to update resource status."));
-    }
+  const openConfirmDialog = (config) => {
+    setConfirmDialog(config);
   };
 
-  const handleDelete = async (id) => {
-    const confirmed = window.confirm("Are you sure you want to delete this resource?");
-    if (!confirmed) return;
-
-    try {
-      setMessage("");
-      setError("");
-      await deleteResource(id);
-      setMessage("Resource deleted successfully.");
-      if (editingResource?.id === id) {
-        setEditingResource(null);
-        setFormResetKey((current) => current + 1);
-      }
-      await loadResources();
-    } catch (requestError) {
-      setError(getApiErrorMessage(requestError, "Failed to delete resource."));
+  const closeConfirmDialog = () => {
+    if (confirmBusy) {
+      return;
     }
+
+    setConfirmDialog(null);
+  };
+
+  const handlePermanentStatusToggle = (resource) => {
+    const nextStatus = resource.baseStatus === "ACTIVE" ? "OUT_OF_SERVICE" : "ACTIVE";
+    const confirmationMessage = nextStatus === "OUT_OF_SERVICE"
+      ? "Set this resource as permanently out of service? Temporary maintenance should use the schedule action instead."
+      : "Restore this resource to permanent active status?";
+
+    openConfirmDialog({
+      title: nextStatus === "OUT_OF_SERVICE" ? "Set permanent out of service?" : "Restore permanent active status?",
+      message: confirmationMessage,
+      confirmLabel: nextStatus === "OUT_OF_SERVICE" ? "Set Permanent Out" : "Restore Resource",
+      confirmTone: nextStatus === "OUT_OF_SERVICE" ? "danger" : "primary",
+      onConfirm: async () => {
+        try {
+          setConfirmBusy(true);
+          setMessage("");
+          setError("");
+          await updateResourceStatus(resource.id, nextStatus);
+          setMessage("Permanent resource status updated.");
+          await loadResources();
+          setConfirmDialog(null);
+        } catch (requestError) {
+          setError(getApiErrorMessage(requestError, "Failed to update permanent resource status."));
+        } finally {
+          setConfirmBusy(false);
+        }
+      },
+    });
+  };
+
+  const handleDelete = (id) => {
+    openConfirmDialog({
+      title: "Delete this resource?",
+      message: "This will remove the resource from the catalogue if it is not linked to existing bookings.",
+      confirmLabel: "Delete Resource",
+      confirmTone: "danger",
+      onConfirm: async () => {
+        try {
+          setConfirmBusy(true);
+          setMessage("");
+          setError("");
+          await deleteResource(id);
+          setMessage("Resource deleted successfully.");
+          if (editingResource?.id === id) {
+            setEditingResource(null);
+            setFormResetKey((current) => current + 1);
+          }
+          if (resourceForBlocking?.id === id) {
+            setResourceForBlocking(null);
+            setResourceBlocks([]);
+          }
+          await loadResources();
+          setConfirmDialog(null);
+        } catch (requestError) {
+          setError(getApiErrorMessage(requestError, "Failed to delete resource."));
+        } finally {
+          setConfirmBusy(false);
+        }
+      },
+    });
   };
 
   const handleEdit = (resource) => {
@@ -113,6 +186,7 @@ function AdminResourcesPage() {
       code: resource.code,
       type: resource.type,
       capacity: resource.capacity,
+      equipmentType: resource.equipmentType ?? "",
       location: resource.location,
       description: resource.description ?? "",
       availableFrom: resource.availableFrom,
@@ -127,9 +201,85 @@ function AdminResourcesPage() {
     setFormResetKey((current) => current + 1);
   };
 
+  const openBlockModal = async (resource) => {
+    setResourceForBlocking(resource);
+    setBlockError("");
+    await loadBlocksForResource(resource.id);
+  };
+
+  const closeBlockModal = () => {
+    setResourceForBlocking(null);
+    setResourceBlocks([]);
+    setBlockError("");
+    setSubmittingBlock(false);
+    setDeletingBlockId(null);
+  };
+
+  const handleCreateBlock = async (formData) => {
+    if (!resourceForBlocking) {
+      return;
+    }
+
+    try {
+      setSubmittingBlock(true);
+      setBlockError("");
+      setMessage("");
+      await createResourceBlock(resourceForBlocking.id, {
+        ...formData,
+        startTime: formData.allDay ? null : formData.startTime,
+        endTime: formData.allDay ? null : formData.endTime,
+      });
+      setMessage("Scheduled out-of-service window saved.");
+      await Promise.all([
+        loadBlocksForResource(resourceForBlocking.id),
+        loadResources(),
+      ]);
+    } catch (requestError) {
+      setBlockError(getApiErrorMessage(requestError, "Failed to save the scheduled block."));
+    } finally {
+      setSubmittingBlock(false);
+    }
+  };
+
+  const handleDeleteBlock = (blockId) => {
+    if (!resourceForBlocking) {
+      return;
+    }
+
+    openConfirmDialog({
+      title: "Remove scheduled out-of-service window?",
+      message: "This will cancel the selected temporary block and make that time slot bookable again.",
+      confirmLabel: "Remove Window",
+      confirmTone: "danger",
+      onConfirm: async () => {
+        try {
+          setConfirmBusy(true);
+          setDeletingBlockId(blockId);
+          setBlockError("");
+          setMessage("");
+          await deleteResourceBlock(resourceForBlocking.id, blockId);
+          setMessage("Scheduled out-of-service window removed.");
+          await Promise.all([
+            loadBlocksForResource(resourceForBlocking.id),
+            loadResources(),
+          ]);
+          setConfirmDialog(null);
+        } catch (requestError) {
+          setBlockError(getApiErrorMessage(requestError, "Failed to remove the scheduled block."));
+        } finally {
+          setDeletingBlockId(null);
+          setConfirmBusy(false);
+        }
+      },
+    });
+  };
+
   const stats = useMemo(() => {
     const active = resources.filter((resource) => resource.status === "ACTIVE").length;
     const inactive = resources.filter((resource) => resource.status !== "ACTIVE").length;
+    const permanentlyUnavailable = resources.filter(
+      (resource) => resource.baseStatus !== "ACTIVE",
+    ).length;
     const totalCapacity = resources.reduce(
       (sum, resource) => sum + (Number(resource.capacity) || 0),
       0,
@@ -140,6 +290,7 @@ function AdminResourcesPage() {
       total: resources.length,
       active,
       inactive,
+      permanentlyUnavailable,
       capacity: totalCapacity,
       locations,
     };
@@ -152,7 +303,7 @@ function AdminResourcesPage() {
           <p className="eyebrow">Admin Resource Operations</p>
           <h1>Manage rooms, labs, and shared assets</h1>
           <p className="page-subtitle resource-admin-hero-copy">
-            Create new resource entries, update availability, and keep the campus inventory aligned with real booking conditions.
+            Create new resource entries, schedule maintenance windows, and keep rooms, equipment, and venue-style assets aligned with real booking conditions.
           </p>
         </div>
         <div className="resource-admin-live-pill">
@@ -176,7 +327,7 @@ function AdminResourcesPage() {
             <FiCheckCircle />
           </div>
           <div>
-            <p className="eyebrow">Active Resources</p>
+            <p className="eyebrow">Currently Active</p>
             <h2>{stats.active}</h2>
           </div>
         </article>
@@ -185,8 +336,8 @@ function AdminResourcesPage() {
             <FiActivity />
           </div>
           <div>
-            <p className="eyebrow">Managed Capacity</p>
-            <h2>{stats.capacity}</h2>
+            <p className="eyebrow">Currently Out</p>
+            <h2>{stats.inactive}</h2>
           </div>
         </article>
         <article className="card resource-stat-card ticket-accent-slate">
@@ -213,7 +364,7 @@ function AdminResourcesPage() {
           title={editingResource ? "Update selected resource" : "Create a new resource entry"}
           subtitle={
             editingResource
-              ? "Adjust capacity, location, description, or operating hours for the selected inventory item."
+              ? "Adjust capacity, subtype, location, description, or operating hours for the selected inventory item."
               : "Add a fresh catalogue item with the details students and staff need before booking."
           }
         />
@@ -230,15 +381,15 @@ function AdminResourcesPage() {
           </article>
 
           <article className="card resource-form-note">
-            <p className="eyebrow">Inventory Snapshot</p>
+            <p className="eyebrow">Availability Snapshot</p>
             <div className="resource-highlight-list">
               <div className="resource-mini-card">
-                <span>Out of service</span>
+                <span>Current outages</span>
                 <strong>{stats.inactive}</strong>
               </div>
               <div className="resource-mini-card">
-                <span>Bookable now</span>
-                <strong>{stats.active}</strong>
+                <span>Permanent out</span>
+                <strong>{stats.permanentlyUnavailable}</strong>
               </div>
               <div className="resource-mini-card">
                 <span>Coverage</span>
@@ -255,7 +406,7 @@ function AdminResourcesPage() {
             <p className="eyebrow">Resource Inventory</p>
             <h2>Existing resources</h2>
             <p className="resource-table-meta">
-              Review the live catalogue, change status, or open any resource for editing.
+              Review live catalogue status, schedule temporary outages, or set permanent availability.
             </p>
           </div>
           <div className="resource-inline-actions">
@@ -276,10 +427,11 @@ function AdminResourcesPage() {
               <tr>
                 <th>Name</th>
                 <th>Type</th>
-                <th>Capacity</th>
+                <th>Capacity / Subtype</th>
                 <th>Location</th>
                 <th>Availability</th>
                 <th>Status</th>
+                <th>Scheduled Windows</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -300,14 +452,32 @@ function AdminResourcesPage() {
                     </td>
                     <td>{formatLabel(resource.type)}</td>
                     <td>
-                      <span className="resource-capacity-chip">{resource.capacity} people</span>
+                      <span className="resource-capacity-chip">
+                        {getResourceSecondaryMeta(resource).value}
+                      </span>
                     </td>
                     <td>{resource.location}</td>
                     <td>{getAvailabilityRange(resource)}</td>
                     <td>
-                      <span className={`status-badge ${getResourceStatusClass(resource.status)}`}>
-                        {formatLabel(resource.status)}
-                      </span>
+                      <div className="resource-status-stack">
+                        <span className={`status-badge ${getResourceStatusClass(resource.status)}`}>
+                          {formatLabel(resource.status)}
+                        </span>
+                        <small>Permanent: {formatLabel(resource.baseStatus)}</small>
+                        {resource.currentlyBlocked ? (
+                          <small>{resource.currentBlockReason || "Active block window in progress."}</small>
+                        ) : null}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="resource-status-stack">
+                        <strong>{resource.scheduledBlockCount || 0} windows</strong>
+                        <small>
+                          {resource.nextScheduledBlock
+                            ? formatBlockWindow(resource.nextScheduledBlock)
+                            : "No current or future blocks"}
+                        </small>
+                      </div>
                     </td>
                     <td>
                       <div className="resource-inline-actions">
@@ -322,9 +492,18 @@ function AdminResourcesPage() {
                         <button
                           type="button"
                           className="btn btn-secondary btn-sm"
-                          onClick={() => handleToggleStatus(resource)}
+                          onClick={() => openBlockModal(resource)}
                         >
-                          {resource.status === "ACTIVE" ? "Mark Out" : "Mark Active"}
+                          <FiCalendar />
+                          Schedule Out
+                        </button>
+
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => handlePermanentStatusToggle(resource)}
+                        >
+                          {resource.baseStatus === "ACTIVE" ? "Set Permanent Out" : "Restore Permanent"}
                         </button>
 
                         <button
@@ -340,7 +519,7 @@ function AdminResourcesPage() {
                 ))
               ) : (
                 <tr className="resource-admin-empty">
-                  <td colSpan="7">
+                  <td colSpan="8">
                     <p className="page-subtitle">No resources available yet.</p>
                   </td>
                 </tr>
@@ -349,6 +528,33 @@ function AdminResourcesPage() {
           </table>
         </div>
       </article>
+
+      {resourceForBlocking ? (
+        <ResourceBlockFormModal
+          key={resourceForBlocking.id}
+          resource={resourceForBlocking}
+          blocks={resourceBlocks}
+          loadingBlocks={loadingBlocks}
+          submitting={submittingBlock}
+          deletingBlockId={deletingBlockId}
+          error={blockError}
+          onClose={closeBlockModal}
+          onSubmit={handleCreateBlock}
+          onDelete={handleDeleteBlock}
+        />
+      ) : null}
+
+      {confirmDialog ? (
+        <ConfirmActionModal
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          confirmLabel={confirmDialog.confirmLabel}
+          confirmTone={confirmDialog.confirmTone}
+          loading={confirmBusy}
+          onConfirm={confirmDialog.onConfirm}
+          onClose={closeConfirmDialog}
+        />
+      ) : null}
     </div>
   );
 }

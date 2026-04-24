@@ -37,6 +37,12 @@ export const bookingService = {
     return response.data;
   },
 
+  // Check in to an approved booking
+  checkInBooking: async (id) => {
+    const response = await axiosInstance.patch(`/bookings/${id}/check-in`);
+    return response.data;
+  },
+
   // Delete a pending booking
   deleteBooking: async (id) => {
     const response = await axiosInstance.delete(`/bookings/${id}`);

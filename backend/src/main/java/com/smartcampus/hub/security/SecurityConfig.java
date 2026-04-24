@@ -71,7 +71,10 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/error", "/webjars/**", "/oauth2/**", "/login/**", "/uploads/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register", "/api/auth/logout").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register", "/api/auth/logout",
+                                "/api/auth/verify-email", "/api/auth/resend-verification",
+                                "/api/auth/forgot-password", "/api/auth/reset-password").permitAll()
+                        .requestMatchers("/ws/**").authenticated()
                         .requestMatchers("/api/users/me").authenticated()
                         // Notification endpoints — users own their notifications
                         .requestMatchers(HttpMethod.GET,    "/api/notifications/**").authenticated()
@@ -79,6 +82,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/notifications/**").authenticated()
                         // Admin-only broadcast
                         .requestMatchers(HttpMethod.POST, "/api/admin/notifications/**").hasRole("ADMIN")
+                        // Public resource viewing
+                        .requestMatchers(HttpMethod.GET, "/api/resources/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2

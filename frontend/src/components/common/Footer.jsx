@@ -3,10 +3,10 @@ function Footer() {
     <footer className="footer">
       <div className="container footer-content">
         <div>
-          <p className="footer-title">Smart Campus Operations Hub</p>
-          <p className="footer-text">User management, role-based access, and plain workflow screens.</p>
+          <p className="footer-title">OpusU Platform</p>
+          <p className="footer-text">Smart Campus Operations Hub</p>
         </div>
-        <p className="footer-text">PAF 2026 frontend module</p>
+        <p className="footer-text">By Team DS Hustlers</p>
       </div>
     </footer>
   );

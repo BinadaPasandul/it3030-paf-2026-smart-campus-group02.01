@@ -83,6 +83,7 @@ public class UserService {
         user.setRole(role);
         user.setActive(true);
         user.setProvider("LOCAL");
+        user.setEmailVerified(role == Role.TECHNICIAN || role == Role.ADMIN);
         applyProfileDetails(
                 user,
                 fullName,
@@ -96,6 +97,11 @@ public class UserService {
                 profileCompleted
         );
 
+        return userRepository.save(user);
+    }
+
+    /** Save an already-managed user (e.g., after setting verification fields). */
+    public User saveUser(User user) {
         return userRepository.save(user);
     }
 
@@ -145,6 +151,12 @@ public class UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
     }
 
+    public void updatePassword(String email, String rawPassword) {
+        User user = findUserByEmail(email);
+        user.setPassword(passwordEncoder.encode(rawPassword));
+        userRepository.save(user);
+    }
+
     public UserResponse updateUserRole(@NonNull Long id, UpdateUserRoleRequest request) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
@@ -165,12 +177,11 @@ public class UserService {
         return mapToResponse(updatedUser);
     }
 
-    public void deactivateUser(@NonNull Long id) {
+    public void deleteUser(@NonNull Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
-        user.setActive(false);
-        userRepository.save(user);
+        userRepository.delete(user);
     }
 
     public void populateGoogleUser(User user, String fullName, String provider, String providerId) {

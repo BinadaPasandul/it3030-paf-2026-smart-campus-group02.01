@@ -41,6 +41,17 @@ function MyBookingsPage() {
     }
   };
 
+  const handleCheckIn = async (bookingId) => {
+    try {
+      await bookingService.checkInBooking(bookingId);
+      fetchBookings();
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || "Unable to check in for this booking.");
+      fetchBookings();
+    }
+  };
+
   const handleDelete = async (bookingId) => {
     if (!window.confirm("Remove this rejected or cancelled booking permanently?")) return;
 
@@ -57,8 +68,9 @@ function MyBookingsPage() {
     filterStatus === "ALL" ? true : booking.status === filterStatus,
   );
 
-  const statuses = ["ALL", "PENDING", "APPROVED", "REJECTED", "CANCELLED"];
+  const statuses = ["ALL", "PENDING", "APPROVED", "CHECKED_IN", "REJECTED", "CANCELLED"];
   const approvedCount = bookings.filter((booking) => booking.status === "APPROVED").length;
+  const checkedInCount = bookings.filter((booking) => booking.status === "CHECKED_IN").length;
   const pendingCount = bookings.filter((booking) => booking.status === "PENDING").length;
 
   return (
@@ -68,7 +80,7 @@ function MyBookingsPage() {
           <p className="eyebrow">Booking History</p>
           <h1>My Bookings</h1>
           <p className="page-subtitle booking-hero-copy">
-            Track upcoming reservations, review past decisions, and manage resource bookings with the same polished layout used across the app.
+            Track upcoming reservations, check in when your slot starts, and avoid ghost-booking auto-cancellations from one place.
           </p>
           <div className="booking-hero-actions">
             <Link to="/resources" className="btn">
@@ -87,8 +99,8 @@ function MyBookingsPage() {
             <strong>{approvedCount}</strong>
           </article>
           <article className="booking-highlight-card">
-            <span>Awaiting review</span>
-            <strong>{pendingCount}</strong>
+            <span>Checked in</span>
+            <strong>{checkedInCount}</strong>
           </article>
         </div>
       </section>
@@ -178,6 +190,7 @@ function MyBookingsPage() {
                 key={booking.id}
                 booking={booking}
                 onCancel={handleCancel}
+                onCheckIn={handleCheckIn}
                 onDelete={handleDelete}
                 isAdmin={false}
               />

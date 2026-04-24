@@ -22,7 +22,10 @@ public class Resource {
     @Column(nullable = false)
     private ResourceType type;
 
-    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "equipment_type")
+    private EquipmentType equipmentType;
+
     private Integer capacity;
 
     @Column(nullable = false)
@@ -95,6 +98,14 @@ public class Resource {
 
     public void setCapacity(Integer capacity) {
         this.capacity = capacity;
+    }
+
+    public EquipmentType getEquipmentType() {
+        return equipmentType;
+    }
+
+    public void setEquipmentType(EquipmentType equipmentType) {
+        this.equipmentType = equipmentType;
     }
 
     public String getLocation() {

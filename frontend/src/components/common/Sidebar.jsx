@@ -4,25 +4,19 @@ import {
   FiClipboard,
   FiDatabase,
   FiGrid,
-  FiHome,
   FiLogOut,
   FiUser,
-  FiCalendar
+  FiCalendar,
+  FiLayers
 } from "react-icons/fi";
 
 function Sidebar({ menuOpen, isAuthenticated, isAdmin, user, onLogout }) {
   const navItems = [
-    { to: "/", label: "Home", icon: FiHome, visible: true },
+    { to: "/", label: "Catalog", icon: FiLayers, visible: true },
     {
       to: "/profile",
       label: "Profile",
       icon: FiUser,
-      visible: isAuthenticated && user?.profileCompleted,
-    },
-    {
-      to: "/resources",
-      label: "Resources",
-      icon: FiBookOpen,
       visible: isAuthenticated && user?.profileCompleted,
     },
     {

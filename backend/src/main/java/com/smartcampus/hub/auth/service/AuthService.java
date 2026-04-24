@@ -22,15 +22,23 @@ import org.springframework.security.web.authentication.logout.SecurityContextLog
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
+import java.util.Map;
+
 @Service
 public class AuthService {
 
     private final AuthenticationManager authenticationManager;
     private final UserService userService;
+    private final EmailService emailService;
 
-    public AuthService(AuthenticationManager authenticationManager, UserService userService) {
+    public AuthService(AuthenticationManager authenticationManager,
+                       UserService userService,
+                       EmailService emailService) {
         this.authenticationManager = authenticationManager;
         this.userService = userService;
+        this.emailService = emailService;
     }
 
     public CurrentUserResponse login(LoginRequest request, HttpServletRequest httpRequest) {
@@ -48,7 +56,7 @@ public class AuthService {
         return getCurrentUser(authentication);
     }
 
-    public CurrentUserResponse register(RegisterRequest request) {
+    public Map<String, String> register(RegisterRequest request) {
         User user = userService.createLocalUser(
                 request.getFullName(),
                 request.getEmail(),
@@ -64,7 +72,104 @@ public class AuthService {
                 true
         );
 
-        return mapToCurrentUser(user, null);
+        // Generate verification code and send email
+        String code = generateVerificationCode();
+        user.setVerificationCode(code);
+        user.setVerificationCodeExpiry(LocalDateTime.now().plusMinutes(15));
+        user.setEmailVerified(false);
+        userService.saveUser(user);
+
+        emailService.sendVerificationEmail(user.getEmail(), code, user.getFullName());
+
+        return Map.of(
+                "message", "Registration successful. Please check your email for a verification code.",
+                "email", user.getEmail()
+        );
+    }
+
+    public Map<String, String> verifyEmail(String email, String code) {
+        User user = userService.findUserByEmail(email);
+
+        if (user.isEmailVerified()) {
+            return Map.of("message", "Email is already verified. You can log in.");
+        }
+
+        if (user.getVerificationCode() == null || !user.getVerificationCode().equals(code)) {
+            throw new IllegalArgumentException("Invalid verification code.");
+        }
+
+        if (user.getVerificationCodeExpiry() != null
+                && user.getVerificationCodeExpiry().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Verification code has expired. Please request a new one.");
+        }
+
+        user.setEmailVerified(true);
+        user.setVerificationCode(null);
+        user.setVerificationCodeExpiry(null);
+        userService.saveUser(user);
+
+        return Map.of("message", "Email verified successfully. You can now log in.");
+    }
+
+    public Map<String, String> resendVerificationCode(String email) {
+        User user = userService.findUserByEmail(email);
+
+        if (user.isEmailVerified()) {
+            return Map.of("message", "Email is already verified.");
+        }
+
+        String code = generateVerificationCode();
+        user.setVerificationCode(code);
+        user.setVerificationCodeExpiry(LocalDateTime.now().plusMinutes(15));
+        userService.saveUser(user);
+
+        emailService.sendVerificationEmail(user.getEmail(), code, user.getFullName());
+
+        return Map.of("message", "A new verification code has been sent to your email.");
+    }
+
+    public Map<String, String> requestPasswordReset(String email) {
+        User user;
+        try {
+            user = userService.findUserByEmail(email);
+        } catch (Exception e) {
+            // Security: Prevent email enumeration
+            return Map.of("message", "If an account with that email exists, a password reset code has been sent.");
+        }
+
+        if (!"LOCAL".equals(user.getProvider()) && user.getProvider() != null) {
+            // Google users do not have a local password to reset
+            return Map.of("message", "If an account with that email exists, a password reset code has been sent.");
+        }
+
+        String code = generateVerificationCode();
+        user.setPasswordResetCode(code);
+        user.setPasswordResetExpiry(LocalDateTime.now().plusMinutes(15));
+        userService.saveUser(user);
+
+        emailService.sendPasswordResetEmail(user.getEmail(), code, user.getFullName());
+
+        return Map.of("message", "If an account with that email exists, a password reset code has been sent.");
+    }
+
+    public Map<String, String> resetPassword(String email, String code, String newPassword) {
+        User user = userService.findUserByEmail(email);
+
+        if (user.getPasswordResetCode() == null || !user.getPasswordResetCode().equals(code)) {
+            throw new IllegalArgumentException("Invalid password reset code.");
+        }
+
+        if (user.getPasswordResetExpiry() != null && user.getPasswordResetExpiry().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Password reset code has expired. Please request a new one.");
+        }
+
+        userService.updatePassword(user.getEmail(), newPassword);
+
+        user.setPasswordResetCode(null);
+        user.setPasswordResetExpiry(null);
+        userService.saveUser(user);
+
+        return Map.of("message", "Your password has been successfully reset. You can now log in.");
     }
 
     public CurrentUserResponse completeProfile(Authentication authentication, CompleteProfileRequest request) {
@@ -85,6 +190,14 @@ public class AuthService {
 
     public void logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
         new SecurityContextLogoutHandler().logout(request, response, authentication);
+    }
+
+    // ── Private helpers ────────────────────────────────────────────────────
+
+    private String generateVerificationCode() {
+        SecureRandom random = new SecureRandom();
+        int code = 100000 + random.nextInt(900000); // 6-digit code
+        return String.valueOf(code);
     }
 
     private CurrentUserResponse mapToCurrentUser(User user, String picture) {

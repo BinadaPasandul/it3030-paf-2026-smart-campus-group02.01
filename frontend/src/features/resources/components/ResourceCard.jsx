@@ -1,16 +1,26 @@
 import { Link } from "react-router-dom";
 import { FiClock, FiMapPin, FiUsers } from "react-icons/fi";
 import {
+  formatBlockWindow,
+  formatDateLabel,
   formatLabel,
   getAvailabilityRange,
   getResourceDescriptionText,
+  getResourceSecondaryMeta,
   getResourceStatusClass,
   getResourceTypeMeta,
 } from "../resourceUi";
 
-function ResourceCard({ resource }) {
+function ResourceCard({ resource, selectedDate = "" }) {
   const { icon: ResourceIcon, tone, label } = getResourceTypeMeta(resource.type);
-  const isActive = resource.status === "ACTIVE";
+  const secondaryMeta = getResourceSecondaryMeta(resource);
+  const bookingDisabled = resource.permanentlyUnavailable;
+  const detailsQuery = selectedDate ? `?date=${selectedDate}` : "";
+  const selectedDateBlocks = resource.selectedDateBlocks || [];
+  const hasSelectedDateBlocks = selectedDateBlocks.length > 0;
+  const selectedDateTone = hasSelectedDateBlocks
+    ? "resource-card-date-note-limited"
+    : "resource-card-date-note-open";
 
   return (
     <article className="resource-card">
@@ -36,6 +46,29 @@ function ResourceCard({ resource }) {
         {getResourceDescriptionText(resource.description)}
       </p>
 
+      {selectedDate ? (
+        <div className={`resource-card-date-note ${selectedDateTone}`}>
+          <strong>{resource.selectedDateAvailabilityMessage || `Available on ${formatDateLabel(selectedDate)}.`}</strong>
+          <span>
+            {hasSelectedDateBlocks
+              ? `Selected date has ${selectedDateBlocks.length} scheduled blocked ${selectedDateBlocks.length === 1 ? "window" : "windows"}.`
+              : `Available on ${formatDateLabel(selectedDate)} during the normal operating window.`}
+          </span>
+        </div>
+      ) : null}
+
+      {resource.currentlyBlocked ? (
+        <div className="resource-card-warning">
+          <strong>Out of service right now</strong>
+          <span>{resource.currentBlockReason || "A scheduled maintenance window is active."}</span>
+        </div>
+      ) : resource.nextScheduledBlock ? (
+        <div className="resource-card-upcoming">
+          <strong>Next unavailable window</strong>
+          <span>{formatBlockWindow(resource.nextScheduledBlock)}</span>
+        </div>
+      ) : null}
+
       <div className="resource-card-meta">
         <div className="resource-meta-tile">
           <span className="resource-meta-label">
@@ -48,9 +81,9 @@ function ResourceCard({ resource }) {
         <div className="resource-meta-tile">
           <span className="resource-meta-label">
             <FiUsers />
-            Capacity
+            {secondaryMeta.label}
           </span>
-          <strong>{resource.capacity} people</strong>
+          <strong>{secondaryMeta.value}</strong>
         </div>
 
         <div className="resource-meta-tile">
@@ -62,22 +95,22 @@ function ResourceCard({ resource }) {
         </div>
 
         <div className="resource-meta-tile">
-          <span className="resource-meta-label">Booking</span>
-          <strong>{isActive ? "Ready to book" : "Unavailable right now"}</strong>
+          <span className="resource-meta-label">Scheduled blocks</span>
+          <strong>{resource.scheduledBlockCount || 0} windows</strong>
         </div>
       </div>
 
       <div className="resource-card-actions">
-        <Link to={`/resources/${resource.id}`} className="btn btn-secondary">
-            View Details
-          </Link>
+        <Link to={`/resources/${resource.id}${detailsQuery}`} className="btn btn-secondary">
+          View Details
+        </Link>
         <Link
           to={`/bookings/new?resourceId=${resource.id}`}
-          className={`btn ${isActive ? "" : "resource-card-disabled"}`}
-          aria-disabled={!isActive}
-          tabIndex={isActive ? 0 : -1}
+          className={`btn ${bookingDisabled ? "resource-card-disabled" : ""}`}
+          aria-disabled={bookingDisabled}
+          tabIndex={bookingDisabled ? -1 : 0}
         >
-          Book Now
+          {bookingDisabled ? "Permanently unavailable" : "Book Now"}
         </Link>
       </div>
     </article>

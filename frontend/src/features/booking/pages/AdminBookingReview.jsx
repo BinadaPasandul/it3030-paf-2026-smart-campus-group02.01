@@ -46,6 +46,7 @@ function AdminBookingReview() {
   };
 
   const approvedCount = bookings.filter((booking) => booking.status === "APPROVED").length;
+  const checkedInCount = bookings.filter((booking) => booking.status === "CHECKED_IN").length;
   const pendingCount = bookings.filter((booking) => booking.status === "PENDING").length;
   const rejectedCount = bookings.filter((booking) => booking.status === "REJECTED").length;
 
@@ -56,7 +57,7 @@ function AdminBookingReview() {
           <p className="eyebrow">Admin Oversight</p>
           <h1>Review Bookings</h1>
           <p className="page-subtitle booking-hero-copy">
-            Examine requests, approve valid reservations, and reject conflicts using the same visual structure as the rest of the platform.
+            Examine requests, approve valid reservations, and monitor live check-in outcomes from the same review queue.
           </p>
         </div>
 
@@ -70,8 +71,8 @@ function AdminBookingReview() {
             <strong>{pendingCount}</strong>
           </article>
           <article className="booking-highlight-card">
-            <span>Approved</span>
-            <strong>{approvedCount}</strong>
+            <span>Checked in</span>
+            <strong>{checkedInCount}</strong>
           </article>
         </div>
       </section>
@@ -126,6 +127,7 @@ function AdminBookingReview() {
               <option value="">All bookings</option>
               <option value="PENDING">Pending only</option>
               <option value="APPROVED">Approved only</option>
+              <option value="CHECKED_IN">Checked in only</option>
               <option value="REJECTED">Rejected only</option>
               <option value="CANCELLED">Cancelled</option>
             </select>
@@ -150,7 +152,7 @@ function AdminBookingReview() {
           <div className="booking-section-bar">
             <div>
               <p className="eyebrow">Decision Queue</p>
-              <h2>Booking records awaiting admin action</h2>
+              <h2>Booking records and live check-in states</h2>
             </div>
             <div className="booking-results-count">{bookings.length} cards</div>
           </div>

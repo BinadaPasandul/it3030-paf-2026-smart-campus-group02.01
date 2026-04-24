@@ -1,7 +1,7 @@
 package com.smartcampus.hub.resource.dto;
 
+import com.smartcampus.hub.resource.entity.EquipmentType;
 import com.smartcampus.hub.resource.entity.ResourceType;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
@@ -18,9 +18,9 @@ public class UpdateResourceRequest {
     @NotNull(message = "Type is required")
     private ResourceType type;
 
-    @NotNull(message = "Capacity is required")
-    @Min(value = 0, message = "Capacity must be 0 or greater")
     private Integer capacity;
+
+    private EquipmentType equipmentType;
 
     @NotBlank(message = "Location is required")
     private String location;
@@ -47,6 +47,10 @@ public class UpdateResourceRequest {
 
     public Integer getCapacity() {
         return capacity;
+    }
+
+    public EquipmentType getEquipmentType() {
+        return equipmentType;
     }
 
     public String getLocation() {

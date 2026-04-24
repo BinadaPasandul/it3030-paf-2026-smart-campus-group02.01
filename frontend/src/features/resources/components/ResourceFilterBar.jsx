@@ -26,7 +26,7 @@ function ResourceFilterBar({ filters, setFilters, onSearch, onReset }) {
           <p className="eyebrow">Smart Filters</p>
           <h2>Find the right space or asset</h2>
           <p className="page-subtitle">
-            Filter the catalogue by type, location, capacity, or live operating status.
+            Filter the catalogue by type, location, capacity, or live operating status, then use the calendar beside it to pick a date.
           </p>
         </div>
         <div className="resource-filter-count">

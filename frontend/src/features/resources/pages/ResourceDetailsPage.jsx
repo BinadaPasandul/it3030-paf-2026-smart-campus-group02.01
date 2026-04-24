@@ -1,39 +1,76 @@
-import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { FiCalendar, FiClock, FiMapPin, FiShield, FiTag, FiUsers } from "react-icons/fi";
 import { getResourceById } from "../../../api/resourceApi";
+import ResourceAvailabilityCalendar from "../components/ResourceAvailabilityCalendar";
+import ResourceBookingWindowList from "../components/ResourceBookingWindowList";
+import ResourceBlockList from "../components/ResourceBlockList";
 import {
+  formatDateLabel,
   formatLabel,
   getAvailabilityRange,
+  getResourceCapacityLabel,
   getResourceDescriptionText,
+  getResourceSecondaryMeta,
   getResourceStatusClass,
   getResourceTypeMeta,
+  isEquipmentResource,
 } from "../resourceUi";
 import "../resources.css";
 
 function ResourceDetailsPage() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
+  const initialSelectedDate = searchParams.get("date") || "";
   const [resource, setResource] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [dateSyncing, setDateSyncing] = useState(false);
   const [error, setError] = useState("");
+  const [selectedDate, setSelectedDate] = useState(initialSelectedDate);
+  const hasLoadedRef = useRef(false);
 
   useEffect(() => {
+    let ignore = false;
+
     const fetchResource = async () => {
       try {
-        setLoading(true);
-        setError("");
-        const data = await getResourceById(id);
+        if (hasLoadedRef.current) {
+          setDateSyncing(true);
+        } else {
+          setLoading(true);
+          setError("");
+        }
+
+        const data = await getResourceById(id, selectedDate ? { date: selectedDate } : {});
+
+        if (ignore) {
+          return;
+        }
+
         setResource(data);
+        setError("");
+        hasLoadedRef.current = true;
       } catch (err) {
+        if (ignore) {
+          return;
+        }
+
         console.error(err);
         setError("Failed to load resource details.");
       } finally {
-        setLoading(false);
+        if (!ignore) {
+          setLoading(false);
+          setDateSyncing(false);
+        }
       }
     };
 
     fetchResource();
-  }, [id]);
+
+    return () => {
+      ignore = true;
+    };
+  }, [id, selectedDate]);
 
   if (loading) {
     return (
@@ -46,7 +83,7 @@ function ResourceDetailsPage() {
     );
   }
 
-  if (error) {
+  if (error && !resource) {
     return (
       <div className="resource-details-page">
         <article className="card resource-empty-state">
@@ -70,18 +107,61 @@ function ResourceDetailsPage() {
   }
 
   const { icon: ResourceIcon, tone, label } = getResourceTypeMeta(resource.type);
-  const isActive = resource.status === "ACTIVE";
+  const secondaryMeta = getResourceSecondaryMeta(resource);
+  const bookingDisabled = resource.permanentlyUnavailable;
+  const selectedDateBlocks = resource.selectedDateBlocks || [];
+  const selectedDateBookings = resource.selectedDateBookings || [];
+  const blocksToShow = selectedDate ? selectedDateBlocks : resource.scheduledBlocks || [];
+  const bookedDates = resource.bookedDates || [];
+  const blockedDates = [...new Set((resource.scheduledBlocks || []).map((block) => block.blockDate).filter(Boolean))];
+  const selectedDateNoteTone = resource.availableOnSelectedDate
+    ? "resource-date-focus-card-open"
+    : "resource-date-focus-card-blocked";
+  const backToCatalogueLink = selectedDate ? `/resources?date=${selectedDate}` : "/resources";
+
+  let bookingStatusTitle = "Ready for reservations";
+  let bookingStatusMessage = "The permanent status is active. Users can still book future slots, and any scheduled block windows will be enforced during validation.";
+
+  if (resource.permanentlyUnavailable) {
+    bookingStatusTitle = "Not bookable until restored";
+    bookingStatusMessage = "The permanent resource status is out of service, so new reservations should not be created.";
+  } else if (selectedDate && resource.availableOnSelectedDate === false) {
+    bookingStatusTitle = "Choose another date";
+    bookingStatusMessage = resource.selectedDateAvailabilityMessage;
+  } else if (selectedDate && resource.availableOnSelectedDate) {
+    bookingStatusTitle = "Available on the selected date";
+    bookingStatusMessage = `${resource.selectedDateAvailabilityMessage} Booked dates in the calendar mean at least one confirmed reservation already exists.`;
+  } else if (resource.currentlyBlocked) {
+    bookingStatusTitle = "Temporarily unavailable right now";
+    bookingStatusMessage = resource.currentBlockReason || "A scheduled maintenance window is active right now.";
+  }
+
+  const handleCalendarSelect = (date) => setSelectedDate(date);
+  const handleCalendarClear = () => setSelectedDate("");
 
   return (
     <div className="resource-details-page">
       <div className="resource-detail-header">
-        <Link to="/resources" className="btn btn-ghost">
+        <Link to={backToCatalogueLink} className="btn btn-ghost">
           Back to catalogue
         </Link>
-        <span className={`status-badge ${getResourceStatusClass(resource.status)}`}>
-          {formatLabel(resource.status)}
-        </span>
+        <div className="resource-card-badge-row">
+          <span className={`status-badge ${getResourceStatusClass(resource.status)}`}>
+            Current: {formatLabel(resource.status)}
+          </span>
+          <span className="resource-code-chip">Permanent: {formatLabel(resource.baseStatus)}</span>
+        </div>
       </div>
+
+      {error ? (
+        <article className="card resource-warning-banner">
+          <div>
+            <p className="eyebrow">Refresh issue</p>
+            <h2>We could not refresh the selected date details</h2>
+            <p className="page-subtitle">{error}</p>
+          </div>
+        </article>
+      ) : null}
 
       <section className="resource-hero">
         <div>
@@ -102,8 +182,8 @@ function ResourceDetailsPage() {
             <strong>{resource.location}</strong>
           </article>
           <article className="resource-highlight-card">
-            <span>Capacity</span>
-            <strong>{resource.capacity} people</strong>
+            <span>{secondaryMeta.label}</span>
+            <strong>{secondaryMeta.value}</strong>
           </article>
           <article className="resource-highlight-card">
             <span>Availability</span>
@@ -111,6 +191,38 @@ function ResourceDetailsPage() {
           </article>
         </div>
       </section>
+
+      {(resource.currentlyBlocked || resource.permanentlyUnavailable) ? (
+        <article className="card resource-warning-banner">
+          <div>
+            <p className="eyebrow">Availability notice</p>
+            <h2>{resource.permanentlyUnavailable ? "This resource is permanently unavailable" : "This resource is currently in a blocked window"}</h2>
+            <p className="page-subtitle">
+              {resource.permanentlyUnavailable
+                ? "New bookings should not be made until staff restore the permanent status."
+                : resource.currentBlockReason || "A scheduled maintenance window is active right now."}
+            </p>
+          </div>
+        </article>
+      ) : null}
+
+      {selectedDate ? (
+        <article className={`card resource-date-focus-card ${selectedDateNoteTone}`}>
+          <div>
+            <p className="eyebrow">Selected Date</p>
+            <h2>{formatDateLabel(selectedDate)}</h2>
+            <p className="page-subtitle">{resource.selectedDateAvailabilityMessage}</p>
+          </div>
+          <div className="resource-card-badge-row">
+            <span className="resource-code-chip">
+              {selectedDateBlocks.length} blocked {selectedDateBlocks.length === 1 ? "window" : "windows"}
+            </span>
+            <span className={`status-badge ${resource.availableOnSelectedDate ? "status-active" : "resource-status-out"}`}>
+              {resource.availableOnSelectedDate ? "Available on selected date" : "Unavailable on selected date"}
+            </span>
+          </div>
+        </article>
+      ) : null}
 
       <div className="resource-detail-layout">
         <article className="card resource-detail-card">
@@ -138,16 +250,30 @@ function ResourceDetailsPage() {
             </div>
             <div>
               <dt>
-                <FiShield /> Status
+                <FiShield /> Current status
               </dt>
               <dd>{formatLabel(resource.status)}</dd>
             </div>
             <div>
               <dt>
+                <FiShield /> Permanent status
+              </dt>
+              <dd>{formatLabel(resource.baseStatus)}</dd>
+            </div>
+            <div>
+              <dt>
                 <FiUsers /> Capacity
               </dt>
-              <dd>{resource.capacity} people</dd>
+              <dd>{getResourceCapacityLabel(resource)}</dd>
             </div>
+            {isEquipmentResource(resource.type) ? (
+              <div>
+                <dt>
+                  <FiUsers /> Equipment type
+                </dt>
+                <dd>{formatLabel(resource.equipmentType)}</dd>
+              </div>
+            ) : null}
             <div>
               <dt>
                 <FiMapPin /> Location
@@ -175,31 +301,64 @@ function ResourceDetailsPage() {
               {getResourceDescriptionText(resource.description)}
             </p>
           </div>
+
+          <ResourceBlockList
+            blocks={blocksToShow}
+            title={selectedDate ? "Selected Date Availability Windows" : "Scheduled Out-of-Service Windows"}
+            emptyMessage={
+              selectedDate
+                ? `No blocked windows are scheduled for ${formatDateLabel(selectedDate)}.`
+                : "No current or future out-of-service windows are scheduled for this resource."
+            }
+            subtitle={
+              selectedDate
+                ? `These windows apply specifically on ${formatDateLabel(selectedDate)}.`
+                : "These windows are visible to users so they can avoid unavailable periods before submitting a booking."
+            }
+          />
         </article>
 
         <aside className="resource-detail-aside">
           <article className="card resource-aside-note">
             <p className="eyebrow">Booking Status</p>
-            <h2>{isActive ? "Ready for reservations" : "Temporarily unavailable"}</h2>
-            <p className="page-subtitle">
-              {isActive
-                ? "This resource is marked active and can be selected during the booking flow."
-                : "This resource is currently out of service, so new bookings should be avoided until it is reactivated."}
-            </p>
+            <h2>{bookingStatusTitle}</h2>
+            <p className="page-subtitle">{bookingStatusMessage}</p>
             <div className="resource-form-actions">
               <Link
                 to={`/bookings/new?resourceId=${resource.id}`}
-                className={`btn ${isActive ? "" : "resource-card-disabled"}`}
-                aria-disabled={!isActive}
-                tabIndex={isActive ? 0 : -1}
+                className={`btn ${bookingDisabled ? "resource-card-disabled" : ""}`}
+                aria-disabled={bookingDisabled}
+                tabIndex={bookingDisabled ? -1 : 0}
               >
-                Book this resource
+                {bookingDisabled ? "Unavailable for booking" : "Book this resource"}
               </Link>
-              <Link to="/resources" className="btn btn-secondary">
+              <Link to={backToCatalogueLink} className="btn btn-secondary">
                 Browse more
               </Link>
             </div>
           </article>
+
+          <ResourceAvailabilityCalendar
+            title="Booking Calendar"
+            subtitle="Booked dates on this resource are marked so you can spot busy days quickly."
+            selectedDate={selectedDate}
+            onSelectDate={handleCalendarSelect}
+            onClear={handleCalendarClear}
+            markedDates={bookedDates}
+            blockedDates={blockedDates}
+            markedLegendLabel="Booked dates"
+            blockedLegendLabel="Scheduled out-of-service"
+            helperText={
+              dateSyncing
+                ? "Updating booked slots and date-specific availability..."
+                : "Orange dates have scheduled out-of-service windows. Red dates have confirmed bookings."
+            }
+          />
+
+          <ResourceBookingWindowList
+            selectedDate={selectedDate}
+            bookings={selectedDateBookings}
+          />
 
           <article className="card resource-aside-note">
             <p className="eyebrow">Usage Snapshot</p>
@@ -215,7 +374,7 @@ function ResourceDetailsPage() {
               </li>
               <li>
                 <FiClock />
-                The availability window shows when the resource is typically operational.
+                Scheduled out-of-service windows are checked against booking times automatically.
               </li>
             </ul>
           </article>

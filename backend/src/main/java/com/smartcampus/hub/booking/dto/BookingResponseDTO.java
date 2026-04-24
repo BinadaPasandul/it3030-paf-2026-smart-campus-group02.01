@@ -1,6 +1,7 @@
 package com.smartcampus.hub.booking.dto;
 
 import com.smartcampus.hub.booking.entity.BookingStatus;
+import com.smartcampus.hub.resource.entity.ResourceStatus;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.LocalDateTime;
@@ -19,6 +20,14 @@ public class BookingResponseDTO {
     private Integer expectedAttendees;
     private BookingStatus status;
     private String adminReason;
+    private ResourceStatus resourceBaseStatus;
+    private ResourceStatus resourceEffectiveStatus;
+    private boolean resourcePermanentlyUnavailable;
+    private LocalDateTime checkInWindowStartsAt;
+    private LocalDateTime checkInDeadlineAt;
+    private LocalDateTime checkedInAt;
+    private boolean checkInEligible;
+    private boolean autoCancelled;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -116,6 +125,70 @@ public class BookingResponseDTO {
 
     public void setAdminReason(String adminReason) {
         this.adminReason = adminReason;
+    }
+
+    public ResourceStatus getResourceBaseStatus() {
+        return resourceBaseStatus;
+    }
+
+    public void setResourceBaseStatus(ResourceStatus resourceBaseStatus) {
+        this.resourceBaseStatus = resourceBaseStatus;
+    }
+
+    public ResourceStatus getResourceEffectiveStatus() {
+        return resourceEffectiveStatus;
+    }
+
+    public void setResourceEffectiveStatus(ResourceStatus resourceEffectiveStatus) {
+        this.resourceEffectiveStatus = resourceEffectiveStatus;
+    }
+
+    public boolean isResourcePermanentlyUnavailable() {
+        return resourcePermanentlyUnavailable;
+    }
+
+    public void setResourcePermanentlyUnavailable(boolean resourcePermanentlyUnavailable) {
+        this.resourcePermanentlyUnavailable = resourcePermanentlyUnavailable;
+    }
+
+    public LocalDateTime getCheckInWindowStartsAt() {
+        return checkInWindowStartsAt;
+    }
+
+    public void setCheckInWindowStartsAt(LocalDateTime checkInWindowStartsAt) {
+        this.checkInWindowStartsAt = checkInWindowStartsAt;
+    }
+
+    public LocalDateTime getCheckInDeadlineAt() {
+        return checkInDeadlineAt;
+    }
+
+    public void setCheckInDeadlineAt(LocalDateTime checkInDeadlineAt) {
+        this.checkInDeadlineAt = checkInDeadlineAt;
+    }
+
+    public LocalDateTime getCheckedInAt() {
+        return checkedInAt;
+    }
+
+    public void setCheckedInAt(LocalDateTime checkedInAt) {
+        this.checkedInAt = checkedInAt;
+    }
+
+    public boolean isCheckInEligible() {
+        return checkInEligible;
+    }
+
+    public void setCheckInEligible(boolean checkInEligible) {
+        this.checkInEligible = checkInEligible;
+    }
+
+    public boolean isAutoCancelled() {
+        return autoCancelled;
+    }
+
+    public void setAutoCancelled(boolean autoCancelled) {
+        this.autoCancelled = autoCancelled;
     }
 
     public LocalDateTime getCreatedAt() {
