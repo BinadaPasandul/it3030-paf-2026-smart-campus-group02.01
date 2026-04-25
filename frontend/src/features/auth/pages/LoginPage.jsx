@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { getApiErrorMessage } from "../../../api/getApiErrorMessage";
 import { useAuth } from "../context/useAuth";
+import authVisual from "../../../assets/auth-visual.png";
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ function LoginPage() {
     email: location.state?.registeredEmail ?? "",
     password: "",
   });
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -48,74 +50,88 @@ function LoginPage() {
   };
 
   return (
-    <div className="auth-wrapper">
-      <div className="card auth-card auth-grid">
-        <div>
-          <p className="eyebrow">Shared Login</p>
-          <h1>Login as admin, technician, or user from the same page.</h1>
-          <p className="page-subtitle">
-            Use your local email and password, or continue with Google if you
-            prefer OAuth. Google users will be sent to a complete-profile page if
-            their account still needs extra details.
-          </p>
-          <p className="helper-text">
-            Seeded admin email: <strong>admin@smartcampus.com</strong>
-          </p>
+    <div className="auth-split-container">
+      <div className="auth-visual-side">
+        <img src={authVisual} alt="Smart Campus Technology" />
+        <div className="auth-visual-content">
+          <h2>Seamless Campus Operations.</h2>
         </div>
+      </div>
 
-        <form className="form-grid" onSubmit={handleSubmit}>
-          {location.state?.successMessage && (
-            <div className="alert alert-success">{location.state.successMessage}</div>
-          )}
+      <div className="auth-form-side">
+        <div className="auth-form-container">
+          <header className="form-header">
+            <span className="eyebrow">Shared Login</span>
+            <h1>Welcome Back</h1>
+            <p>Login to access your dashboard and resources.</p>
+          </header>
 
-          {error && <div className="alert alert-error">{error}</div>}
+          <form className="form-grid" onSubmit={handleSubmit}>
+            {location.state?.successMessage && (
+              <div className="alert alert-success">{location.state.successMessage}</div>
+            )}
 
-          <label className="input-group" htmlFor="email">
-            <span>Email</span>
-            <input
-              id="email"
-              className="input"
-              name="email"
-              type="email"
-              value={form.email}
-              onChange={handleChange}
-              placeholder="you@example.com"
-              required
-            />
-          </label>
+            {error && <div className="alert alert-error">{error}</div>}
 
-          <label className="input-group" htmlFor="password">
-            <span>
-              Password
-            </span>
-            <input
-              id="password"
-              className="input"
-              name="password"
-              type="password"
-              value={form.password}
-              onChange={handleChange}
-              placeholder="Enter your password"
-              required
-            />
-          </label>
+            <label className="input-group" htmlFor="email">
+              <span>Email Address</span>
+              <input
+                id="email"
+                className="input"
+                name="email"
+                type="email"
+                value={form.email}
+                onChange={handleChange}
+                placeholder="you@example.com"
+                required
+              />
+            </label>
 
-          <p className="helper-text" style={{ textAlign: "right", marginTop: "-10px", marginBottom: "10px" }}>
-            <Link to="/forgot-password">Forgot password?</Link>
-          </p>
+            <label className="input-group" htmlFor="password">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                <span>Password</span>
+                <Link to="/forgot-password" style={{ fontSize: "0.85rem", color: "var(--primary)", fontWeight: "700" }}>
+                  Forgot?
+                </Link>
+              </div>
+              <div className="password-input-wrapper">
+                <input
+                  id="password"
+                  className="input"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  value={form.password}
+                  onChange={handleChange}
+                  placeholder="Enter your password"
+                  required
+                />
+                <button
+                  type="button"
+                  className="password-toggle-btn"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? "Hide" : "Show"}
+                </button>
+              </div>
+            </label>
 
-          <button className="btn" type="submit" disabled={submitting}>
-            {submitting ? "Signing in..." : "Login"}
-          </button>
+            <button className="btn btn-large" type="submit" disabled={submitting}>
+              {submitting ? "Signing in..." : "Login to Hub"}
+            </button>
 
-          <button className="btn btn-ghost" type="button" onClick={loginWithGoogle}>
-            Continue with Google
-          </button>
+            <button className="btn btn-ghost btn-large" type="button" onClick={loginWithGoogle}>
+              Continue with Google
+            </button>
 
-          <p className="helper-text">
-            Don&apos;t have an account? <Link to="/register">Create one here</Link>.
-          </p>
-        </form>
+            <p className="helper-text" style={{ textAlign: "center", marginTop: "20px" }}>
+              Don&apos;t have an account? <Link to="/register" style={{ color: "var(--primary)", fontWeight: "700" }}>Create one here</Link>
+            </p>
+
+            <p className="helper-text" style={{ textAlign: "center", opacity: 0.5, fontSize: "0.8rem" }}>
+              System Admin: admin@smartcampus.com
+            </p>
+          </form>
+        </div>
       </div>
     </div>
   );
